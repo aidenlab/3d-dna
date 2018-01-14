@@ -9,7 +9,6 @@
 #### Dependencies: Java; GNU Parallel if available.
 #### Written by: Olga Dudchenko & Sanjit Batra, version date 07/18/2016
 
-
 USAGE="
 *****************************************************
 Visualizing draft genomes in juicebox: 18 July 2016
@@ -35,6 +34,7 @@ OPTIONS:
 -n							Skip normalization.
 -r							Build for specific resolutions (default is -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000,1000)
 -c							Clean up when done (default: no cleanup.)
+-i							Ignore mapq suffix.
 -h							Shows this help
 *****************************************************
 "
@@ -46,9 +46,11 @@ res_string="2500000,1000000,500000,250000,100000,50000,25000,10000,5000,1000"
 
 skip_norm=false
 clean_up=false
+ignore_mapq_suffix=false;
+add_metadata=false;
 
 ## HANDLE OPTIONS
-while getopts "q:p:z:m:l:r:nch" opt; do
+while getopts "q:p:z:m:l:r:incah" opt; do
 case $opt in
 	h) echo "$USAGE"
 		exit 0
@@ -85,6 +87,9 @@ case $opt in
 	;;
 #	l)  gap_file=$OPTARG
 #	;;
+	i)  ignore_mapq_suffix=true;
+		echo ":) -i flag was triggered, building mapq without" >&1
+	;;
 	n)  skip_norm=true
 		echo ":) -n flag was triggered, building maps without normalization" >&1
 	;;
@@ -99,6 +104,9 @@ case $opt in
             echo ":( Wrong syntax for resolution flag. Using the default value pct=5" >&2
         fi
     ;;
+    a)  add_metadata=true
+		echo ":) -a flag was triggered, will look for juicer metadata files and add if present" >&1
+	;;
 	*)  echo ":( Illegal options. Exiting."
 		echo "$USAGE"
 		exit 1
@@ -166,11 +174,15 @@ awk 'BEGIN{OFS="\t"; print "chr1", "sx1", "sx2", "chr2", "sy1", "sy2", "color", 
 
 awk -v scale=${scale} 'BEGIN{OFS="\t"; print "chr1", "sx1", "sx2", "chr2", "sy1", "sy2", "color", "Superscaffold_ID", "x1", "x2", "y1", "y2"; pos+=0}(FILENAME==ARGV[1]){clength[$2]=$3; next}{gsub("-",""); n=split($0,a); c=0; for (i=1; i<=n; i++) {c+=clength[a[i]]}; print "assembly", int(pos/scale), int((pos+c)/scale), "assembly", int(pos/scale), int((pos+c)/scale), "0,0,255", FNR, pos, pos+c, pos, pos+c; pos+=c}' $cprops $asm > ${genomeid}_asm.superscaf_track.txt
 
+# trial single-file for jb4a
+awk '{$1=">"$1}1' ${cprops} | cat - ${asm} > ${genomeid}".assembly"
+
 ## Build .hic files
 
 echo "...Building the hic file"
 
-[ $mapq -eq 1 ] && mapqsuf="" || mapqsuf="_"${mapq} ## do I really want to keep the suffix?? I suppose if I want to 
+[ $mapq -eq 1 ] && ignore_q_suffix=true ## lab convention to keep mapq 1 wo suffix, otherwise add suffix in case building multiple maps
+[ ${ignore_q_suffix} == "true" ] && mapqsuf="" || mapqsuf="_"${mapq}
 
 rLen=${#res[@]}
 add_options=$(( res[0]/scale ))
@@ -185,7 +197,12 @@ add_options="-r "${add_options}
 
 [ "$skip_norm" == "true" ] && add_options=${add_options}" -n"
 
-bash ${juicebox} pre -q ${mapq} ${add_options} ${remapped_mnd} ${genomeid}${mapqsuf}.hic assembly
+if [ "$add_metadata" == "true" ]; then
+	[ -f inter${mapqsuf}.txt ] && add_options=${add_options}" -s inter${mapqsuf}.txt"
+	[ -f inter${mapqsuf}_hists.m ] && add_options=${add_options}" -g inter${mapqsuf}_hists.m"
+fi
+
+bash ${juicebox} pre -q ${mapq} ${add_options} ${remapped_mnd} ${genomeid}${mapqsuf}.hic <(echo "assembly	"$((totlength / scale)))
 
 
 ## Cleanup

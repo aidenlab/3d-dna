@@ -4,7 +4,7 @@
 #### NOTE: the bed file is assumed to be merged (could merge here). bin_size is used to determine minimal acceptable edge overlap (assumed to be equal to bin_size of the mismatch bed file).
 #### Output: stdout 2D annotation file with two types of labels: "debris" (for removal), "mismatch" (for invosertion analysis)
 #### TODO: introduce different labels to distinguish between misassemblies and repeats
-#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu
+#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu on 12/27/2016
 
 function printout(a, b, flag){
 	if (flag=="debris")

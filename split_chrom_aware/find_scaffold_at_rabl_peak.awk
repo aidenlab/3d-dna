@@ -1,5 +1,4 @@
 #This file takes as input, the contig cprops, the asm file and a list of chromosome boundaries. We then output the first scaffold of each chromosome by locating the scaffold inside which this position lies.
-#Written by: Sanjit Batra
 BEGIN{
 	if(ARGC!=5){print "USAGE: awk -f find_scaffolds_at_rabl_peak.awk <cprops> <asm> <chr_boundary_list> <scale_of_hic_map>"; exit -1;}
 	global_pos = 1;

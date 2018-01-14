@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Wrapper around gnu parallel for editing the mnd in case all of apply-edits is not needed. Not employed at the moment.
 # Written by: OD
 

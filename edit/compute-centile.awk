@@ -4,7 +4,8 @@
 #### Parameters: p=<percentile>.
 #### Output: stdout of pth centile.
 #### Note: Implements linear interpolation between closest ranks method
-#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu.
+#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu. Version date 12/02/2016.
+BEGIN{if(complement){p=100-p}}
 {a[NR]=$1}
 END{
 	if (NR==1)

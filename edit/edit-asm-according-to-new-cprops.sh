@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Script to make an equivalent of the old asm file in terms of new cprops if contigs/scaffolds were edited
 # Written by OD
 

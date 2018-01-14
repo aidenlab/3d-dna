@@ -1,7 +1,7 @@
 #!/bin/bash
-
 ## Wrapper script to generate final fasta as well as various component fastas (unprompted)
 ## Adds 500bp gaps between assembly components scaffolded via Hi-C
+## TODO: make gap length a parameter
 ## Written by OD
 
 pipeline=`cd "$( dirname $0)" && cd .. && pwd`
@@ -98,7 +98,6 @@ case $type in
 	"final")
 	
 		echo "Analyzing the merged assembly"
-		[ -z ${input_size} ] || [ -z ${chrom_num} ] || [ -z ${label} ] && echo >&2 ":( Please type in the number of chromosomes -c <num>, the tiny size -s <num> and a label for final fasta -l <label>. Exiting!" && exit 1
 
 		# trim N overhangs
 		echo "...trimming N overhangs"
@@ -127,6 +126,17 @@ case $type in
 		echo ">hic_gap_${gap_id}" >> temp.fasta
 		awk -v gap_size=${gap_size} 'BEGIN{for(i=1; i<=gap_size;i++){str=str"N"}; print str}' >> temp.fasta
 
+		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > ${label}.FINAL.fasta
+		
+		# clean up: remove no_overhangs files
+		rm temp.cprops temp.asm temp.fasta ${cprops} ${asm} ${fasta}
+		
+		exit 
+		
+		# remove rest from script, not specialized script for this
+# skip component analysis if no optional data like chrom number
+		[ -z ${input_size} ] || [ -z ${chrom_num} ] || [ -z ${label} ] && echo >&2 ":| Do not know the number of expected chromosomes: skipping component fasta analysis. Done!" && rm temp.cprops temp.asm temp.fasta && exit 0
+
 		awk -v chrom_num=${chrom_num} 'NR<=chrom_num' temp.asm > temp.chr-length.asm
 	
 		awk -v subtiny=${subtiny_size} 'FILENAME==ARGV[1]{split($1,a,":::overhang_"); len[a[1]]+=$3; oname[$2]=a[1]; next}{gsub("-","")}(NF==1&&oname[$1]!~/:::fragment_/&&len[oname[$1]]<subtiny){print}' temp.cprops temp.asm > temp.subtiny.asm
@@ -137,11 +147,12 @@ case $type in
 
 		# make scaffold sequences of groups and calculate statistics
 		echo "...generating fastas"
+		
 
 		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.chr-length.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > chr-length.fasta
 				
-#		awk '$0~/>/{if(c){print c}; c=0; next}{c+=length}END{print c}' chr-length.fasta > T3.dat
-#		awk '$0~/>/{if(c){print c}; c=0; next}{gsub("N","");gsub("n","");c+=length}END{print c}' chr-length.fasta > tmp
+		awk '$0~/>/{if(c){print c}; c=0; next}{c+=length}END{print c}' chr-length.fasta > T3.dat
+		awk '$0~/>/{if(c){print c}; c=0; next}{gsub("N","");gsub("n","");c+=length}END{print c}' chr-length.fasta > tmp
 #		paste T3.dat tmp > T3.dat.tmp && mv T3.dat.tmp T3.dat && rm tmp
 		
 		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.small.asm  temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > small.fasta
@@ -158,12 +169,10 @@ case $type in
 	
 		# clean up: remove no_overhangs files
 		rm ${cprops} ${asm} ${fasta}
-		# clean up: comment if component fastas for Tables S2 - S4 are needed
+		# clean up: remove component cprops and asm
 		rm temp.fasta temp.cprops temp.asm temp.small.asm temp.tiny.asm temp.chr-length.asm temp.subtiny.asm
-		# clean up: comment if component fastas for Tables S3, S4 are needed
+		# clean up: comment if component fastas are needed
 		rm chr-length.fasta small.fasta tiny.fasta small-and-tiny.fasta
-		# clean up: comment if stats for Table S5 are needed
-		rm ${label}.FINAL.from_input.fasta
 
 	;;
 	*)

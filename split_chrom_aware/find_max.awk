@@ -1,6 +1,5 @@
 #This file takes as input the first row of the juicebox dump at 50kb resolution and a list of coarse chromosome boundary positions.
 #It then searches for the maximum value in a radius of 1Mb centered at each of the above positions.
-#Written by: Sanjit Batra
 BEGIN{
 	res = 50000;
 }
