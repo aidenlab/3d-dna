@@ -5,7 +5,7 @@
 #### Input: cprops, asm, fasta
 #### Output: "no_overhangs" cprops, asm, fasta.
 #### Dependencies: make-gap-bed.awk, edit-cprops, edit-fasta, edit-asm scripts
-#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu
+#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu on 01/30/2017
 
 USAGE="
 *****************************************************

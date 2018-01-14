@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ## Wrapper script to generate a fasta from internal datatypes: cprops and asm
 ## Input: internally consistent cprops, asm and fasta
 ## TODO: parallelize for speed
@@ -60,7 +59,7 @@ do
 		## might use more annotations
 		if [[ $contig == -* ]]; then
 			contig=$(echo $contig | cut -d'-' -f 2)
-			tail -c +${index[${contig}]} ${fasta} | awk '$0~/>/{exit}1' | awk -f ${pipeline}/utils/reverse-single-fasta.awk -
+			tail -c +${index[${contig}]} ${fasta} | awk '$0~/>/{exit}1' | awk -f ${pipeline}/utils/reverse-fasta.awk -
 		else
 			tail -c +${index[${contig}]} ${fasta} | awk '$0~/>/{exit}1'
 		fi

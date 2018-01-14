@@ -87,6 +87,7 @@ bash ${juicebox} dump norm VC ${hic_file} assembly BP ${bin_size} "coverage_wide
 
 echo "fixedStep chrom=assembly start=1 step="${bin_size}" span="${bin_size} | cat - "coverage_wide.wig" > temp && mv temp "coverage_wide.wig"
 
-awk -v thr_cov=${thr_cov} -v bin_size=${bin_size} 'NR>1&&$0>=thr_cov{print (NR-2)*bin_size, (NR-1)*bin_size}' coverage_wide.wig | awk 'BEGIN{OFS="\t"}NR==1{start=$1; end=$2;next}$1==end{end=$2;next}{print "assembly", start, end; start=$1; end=$2}END{print "assembly", start, end}' > repeats_wide.bed
+## NOTE: if(start) was added after 3d-dna release. Caused bug when nothing was annotated due to coverage.
+awk -v thr_cov=${thr_cov} -v bin_size=${bin_size} 'NR>1&&$0>=thr_cov{print (NR-2)*bin_size, (NR-1)*bin_size}' coverage_wide.wig | awk 'BEGIN{OFS="\t"}NR==1{start=$1; end=$2;next}$1==end{end=$2;next}{print "assembly", start, end; start=$1; end=$2}END{if(start){print "assembly", start, end}}' > repeats_wide.bed
 
 ## TODO: maybe downstread add filtering by looking for nearby mismatches to get rid of false positives

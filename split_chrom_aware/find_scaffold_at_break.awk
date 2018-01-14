@@ -1,5 +1,4 @@
 #This file takes as input, the contig merged_nodups, the asm file and the cprops file for the draft scaffolds, and a list of chromosome boundaries. We then output the first scaffold of each chromosome by searching for a directionality index-esque score, but at the granularity of scaffolds instead of bp.
-#Written by: Sanjit Batra
 BEGIN{
 	if(ARGC!=6){print "USAGE: awk -f find_scaffolds_at_break.awk <cprops> <asm> <merged_nodups> <chr_boundary_list> <scale_of_hic_map>"; exit -1;}
 	global_pos = 1;

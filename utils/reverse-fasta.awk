@@ -1,6 +1,7 @@
 #### Description: Script to reverse complement a sequence.
-#### USAGE: awk -f reverse-single-fasta.awk <path-to-single-fasta-file>
+#### USAGE: awk -f reverse-fasta.awk <path-to-fasta-file>
 #### Output: fasta-formatted stdout
+
 function substitute(char){
 ## TODO: handle non-standard?
 	if (char=="A")
@@ -24,7 +25,22 @@ function substitute(char){
 	else if (char=="n")
 		return "n"
 }
-$0~/>/{$1=">RC_"substr($1,2); print $1; next}
+$0~/>/{
+	for(i=n;i>=1;i--)
+	{
+		str=""
+		k=split(line[i],a,"")
+		for(s=k;s>=1;s--)
+		{
+			str=str""substitute(a[s])
+		}
+		print str
+	}
+	$1=">RC_"substr($1,2)
+	print $1
+	n=0
+	next
+}
 {n++; line[n]=$0}
 END{
 for(i=n;i>=1;i--)

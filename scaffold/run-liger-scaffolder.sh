@@ -28,7 +28,7 @@ Note that in the current version the input is expected in the cprops format.
 "
 
 ## Set current defaults
-SIZE=20000
+SIZE=15000
 MAPQ=1
 use_parallel=true
 
@@ -120,8 +120,8 @@ fi
 ## PREP FOR FIRST STEP - TODO: make restarting from any step possible
 if [ ! -f "h.scaffolds.original.notation.step.""0"".txt" ]; then
 	echo "...Scaffolding all scaffolds and contigs greater or equal to $SIZE bp."	
-	gawk -v SIZE=${SIZE} '$3>=SIZE&&$1!~/:::debris$/{print $2}' $contigPropFile > "h.scaffolds.original.notation.step.""0"".txt"
-	gawk -v SIZE=${SIZE} '$3<SIZE||$1~/:::debris$/{print $2}' $contigPropFile > "h.dropouts.step.""0"".txt"
+# thinking of introducing an unattempted flag, would influence things here
+	gawk -v SIZE=${SIZE} '$3>=SIZE && $1!~/:::debris$/{print $2; next}{print $2 >"/dev/stderr"}' $contigPropFile > "h.scaffolds.original.notation.step.""0"".txt" 2>"h.dropouts.step.""0"".txt"
 else
 	echo "...Explicit scaffold set has been listed as input. Using set as a first iteration."
 fi
@@ -145,9 +145,9 @@ while true; do
 	else
 		gawk -v MAPQ="$MAPQ" -f $scrape_contacts_script $contigPropFile "h.scaffolds.original.notation.step.""$(($STEP-1))"".txt" "$mergelib" | gawk -f ${merge_scores_script} $contigPropFile "h.scaffolds.original.notation.step.""$(($STEP-1))"".txt" - > "h.scores.step.""$STEP"".txt"
 	fi
-	
+	    
     #consolidate scrape data into double-sorted-confidence file
-    gawk -f $compute_confidences_script "h.scores.step.""$STEP"".txt" | sort -r -nk4 -nk5 -S1G --parallel=24 -s > "h.double.sorted.confidence.step.""$STEP"".txt"
+    gawk -f $compute_confidences_script "h.scores.step.""$STEP"".txt" | sort -r -gk4 -gk5 -S8G --parallel=48 -s > "h.double.sorted.confidence.step.""$STEP"".txt"
 
     #create new links between contigs based on confidence file
     gawk -f $accept_links_script "h.double.sorted.confidence.step.""$STEP"".txt" > "h.scaffolds.step.""$STEP"".txt"
@@ -208,7 +208,7 @@ done
 # CONSOLIDATE FINAL OUTPUT
 basenamefile="$(basename $contigPropFile .cprops)"
 cp "h.scaffolds.original.notation.step.""$STEP"".txt" "$basenamefile"".asm"
-for i in $(find . -name 'h.dropouts.step.*.txt' | sort -nr); do
+for i in $(find . -name 'h.dropouts.step.*.txt' | sort -t "." -nr -k 5); do
     cat $i >> "$basenamefile"".asm"
 done
 

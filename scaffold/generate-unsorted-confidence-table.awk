@@ -1,6 +1,6 @@
 #### Description: Transform the density graph to a confidence graph.
 #### Written by: OD
-#TODO: explore thresholds - raw coverage? misassembly upstream? repeats upstream? what else? BEGIN{SCORE_THRESH = 3}
+#### TODO: explore thresholds - raw coverage? misassembly upstream? repeats upstream? what else? BEGIN{SCORE_THRESH = 3}
 {
 counter[NR] = $0 # will need this info later
 
@@ -134,8 +134,11 @@ for (n in counter) {
 		second = data[3]
 
 #TODO: 	introduce thresholding for inter vs intra? Can be done later as well
+
 	if (second > 0)
+	{
 		conf = a[4]/second
+	}
 	else
 #TODO: 	explore how to best deal with no-alternative links. Probably not too big of a problem for LIGer
 		conf = 0

@@ -8,7 +8,7 @@
 #### Parameters: primarily those that will be passed to the mismatch detector.
 #### Unprompted: -p for use of GNU Parallel; -c for percent to saturate, -k for sensitivity, -b for balancing type (mismatch detector unprompted parameters).
 #### Dependencies: mismatch-detector, editor, scaffolder, polish-specific files (edit-asm-according-to-new-cprops.sh).
-#### Written by: OD.
+#### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu. Version dated 01/22/2017
 
 ## Set defaults
 input_size=1000000
@@ -97,14 +97,14 @@ case $opt in
             echo ":( Wrong syntax for mismatch threshold. Using the default value k=50" >&2
         fi
     ;;
-    c)  re='^[0-9]+$'
-        if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]] && [[ $OPTARG -lt 100 ]]; then
-            echo ":) -c flag was triggered, starting calculations with ${OPTARG}% saturation level" >&1
-            pct=$OPTARG
+    c)  re='^[0-9]+\.?[0-9]*$'
+if [[ $OPTARG =~ $re ]] && [[ ${OPTARG%.*} -ge 0 ]] && ! [[ "$OPTARG" =~ ^0*(\.)?0*$ ]] && [[ $((${OPTARG%.*} + 1)) -le 100 ]]; then
+        	echo ":) -c flag was triggered, starting calculations with ${OPTARG}% saturation level" >&1
+        	pct=$OPTARG
         else
-            echo ":( Wrong syntax for saturation threshold. Using the default value pct=5" >&2
+        	echo ":( Wrong syntax for saturation threshold. Using the default value pct=${pct}" >&2
         fi
-    ;;
+	;;
     b)	if [ $OPTARG == NONE ] || [ $OPTARG == VC ] || [ $OPTARG == VC_SQRT ] || [ $OPTARG == KR ]; then
     	    echo ":) -b flag was triggered. Type of norm chosen for the contact matrix is $OPTARG." >&1
 			norm=$OPTARG
@@ -166,7 +166,7 @@ if [ -z ${current_hic} ] || [ -z ${current_scaf} ] || [ -z ${current_superscaf} 
 fi
 
 #	1) Annotate mismatches in current assembly
-bash ${pipeline}/edit/run-mismatch-detector.sh -p ${use_parallel} -w ${wide_bin} -k ${k} -d ${wide_depletion} -n ${narrow_bin} ${current_hic}
+bash ${pipeline}/edit/run-mismatch-detector.sh -p ${use_parallel} -c ${pct} -w ${wide_bin} -k ${k} -d ${wide_depletion} -n ${narrow_bin} ${current_hic}
 
 # store intermediate mismatch stuff	- not necessary
 mv depletion_score_wide.wig ${id}.${STEP}.depletion_score_wide.wig
@@ -211,12 +211,21 @@ awk -v bin_size=${narrow_bin} -f ${pipeline}/edit/overlay-edits.awk ${current_sc
 	awk -v input_size=${input_size} 'function printout(str){if(c>=input_size){print substr(str,2)>"h.scaffolds.original.notation.step.0.txt"}else{print substr(str,2)>"h.dropouts.step.0.txt"}}FILENAME==ARGV[1]{len[$2]=$3; len[-$2]=$3; if($1~/:::debris/){remove[$2]=1; remove[-$2]=1}; next}{str=""; for(i=1;i<=NF;i++){if($i in remove){if(str!=""){printout(str)}; print $i > "h.dropouts.step.0.txt"; str=""; c=0}else{str=str" "$i; c+=len[$i]}}; if(str!=""){printout(str)}}' ${polish_cprops} new_resolved.asm
 	cat new_unresolved.asm >> h.dropouts.step.0.txt
 
+mv h.dropouts.step.0.txt do_not_delete.dropouts.step.0.txt
+
 #	6) Run TIGer
 	bash ${pipeline}/scaffold/run-tiger-scaffolder.sh -p ${use_parallel} -s ${input_size} ${polish_cprops} ${polish_mnd}
+	polish_asm=`basename ${polish_cprops} .cprops`.asm
+
+mv do_not_delete.dropouts.step.0.txt h.dropouts.step.0.txt
+mv ${polish_asm} h.scaffolds.original.notation.step.0.txt
+
+#	6) Run LIGer (for things TIGer was not able to join - not necessary, but for megascaffold consistency)
+	bash ${pipeline}/scaffold/run-liger-scaffolder.sh -p ${use_parallel} -s ${input_size} ${polish_cprops} ${polish_mnd}
 	polish_asm=`basename ${polish_cprops} .cprops`.asm
 
 #	7) Visualize output
 	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${use_parallel} ${polish_cprops} ${polish_asm} ${polish_mnd}
 	
 #	8) Cleanup
-#	rm temp_resolved.asm temp_unresolved.asm temp.pre_polish_edits.txt temp.post_polish_edits.txt new_resolved.asm new_unresolved.asm temp.${id}.${STEP}.asm_mnd.txt
+	rm ${polish_mnd} temp_resolved.asm temp_unresolved.asm temp.pre_polish_edits.txt temp.post_polish_edits.txt new_resolved.asm new_unresolved.asm temp.${id}.${STEP}.asm_mnd.txt

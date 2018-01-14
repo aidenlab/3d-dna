@@ -4,7 +4,6 @@
 #### Input: fasta file
 #### Output: bed-formatted stdout
 #### Written by: Olga Dudchenko - olga.dudchenko@bcm.edu.
-
 BEGIN{
 #	gap_size_threshold=500
 }

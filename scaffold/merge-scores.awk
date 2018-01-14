@@ -39,5 +39,8 @@ function abs(value)
 	count += $4
 }
 END{
-	print prev1, prev2, prev3, count/(slength[prev1]*slength[prev2]), count
+	if (prev1)
+	{
+		print prev1, prev2, prev3, count/(slength[prev1]*slength[prev2]), count
+	}
 }

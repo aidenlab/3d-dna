@@ -92,7 +92,7 @@ echo "...applying edits to cprops file" >&1
 filename=$(basename "$cprops")
 extension="${filename##*.}"
 filename="${filename%.*}"
-awk -f ${edit_cprops_script} ${edits} ${cprops} > ${filename}.${suffix}.${extension}
+awk -v label1=":::fragment_" -v label2=":::debris" -f ${edit_cprops_script} ${edits} ${cprops} > ${filename}.${suffix}.${extension}
 new_cprops="${filename}.${suffix}.${extension}"
 
 ## edit mnd
@@ -101,9 +101,9 @@ filename=$(basename "$mnd")
 extension="${filename##*.}"
 filename="${filename%.*}"
 if [ ${use_parallel} == "true" ]; then
-	parallel -a ${mnd} --pipepart --will-cite --jobs 80% --block 1G "awk -f ${edit_mnd_script} ${new_cprops} - " > ${filename}.${suffix}.${extension}
+	parallel -a ${mnd} --pipepart --will-cite --jobs 80% --block 1G "awk -v label1=\":::fragment_\" -v label2=\":::debris\" -f ${edit_mnd_script} ${new_cprops} - " > ${filename}.${suffix}.${extension}
 else	
-	awk -f ${edit_mnd_script} ${new_cprops} ${mnd} > ${filename}.${suffix}.${extension}
+	awk -v label1=":::fragment_" -v label2=":::debris" -f ${edit_mnd_script} ${new_cprops} ${mnd} > ${filename}.${suffix}.${extension}
 fi
 
 ## edit fasta
@@ -112,6 +112,6 @@ if [ ! -z ${fasta} ] && [ -s ${fasta} ]; then
 	filename=$(basename "$fasta")
 	extension="${filename##*.}"
 	filename="${filename%.*}"
-	awk -f ${edit_fasta_script} ${new_cprops} ${fasta} > ${filename}.${suffix}.${extension}
+	awk -v label1=":::fragment_" -v label2=":::debris" -f ${edit_fasta_script} ${new_cprops} ${fasta} > ${filename}.${suffix}.${extension}
 fi
 
