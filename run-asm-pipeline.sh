@@ -172,6 +172,9 @@ while :; do
 			else
 				echo ":( Unrecognized value for mode flag. Running with default parameters (--mode haploid)." >&2
 			fi
+			if [ "$OPTARG" == "diploid" ]; then
+				diploid="true"
+			fi
 			shift
     	;;
         -r|--rounds) OPTARG=$2
