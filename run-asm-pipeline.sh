@@ -693,7 +693,7 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 		ln -sf ${genomeid}.rawchrom.cprops ${genomeid}.final.cprops
 		ln -sf ${genomeid}.rawchrom.asm ${genomeid}.final.asm
 		ln -sf ${genomeid}.rawchrom.fasta ${genomeid}.final.fasta
-		ln -sf ${genomeid}.rawchrom.hic ${genomeid}.rawchrom.hic
+		ln -sf ${genomeid}.rawchrom.hic ${genomeid}.final.hic
 		ln -sf ${genomeid}.rawchrom.assembly ${genomeid}.final.assembly
 	fi
 	
