@@ -53,8 +53,9 @@ Another script [run-asm-pipeline-post-review.sh](https://github.com/theaidenlab/
 
 Run  
 ```sh
-./run-asm-pipeline.sh –h
+./run-asm-pipeline-post-review.sh –h|--help
 ```
+for details.
 
 ### Individual modules
 The wrapper script calls individual modules of the pipeline. Code related to any particular module is organized into individual folders. The modules can also be run as separate scripts. The list of individual modules with their main wrapper scripts is given below:
@@ -100,13 +101,13 @@ b) 	.hic files
 - 	[0123…] – correspond to the assembly at individual editing iterations;
 
 c) 	.scaffold_track.txt & .superscaf_track.txt
-- 	Scaffold boundary files (Juicebox 2D annotation format);
+- 	Scaffold boundary files (Juicebox 2D annotation format) - still supported but now relatively obsolete that .assembly files can be loaded into Juicebox via Juicebox Assembly Tools;
 
 d) 	.bed & .wig files
 - 	Tracks illustrating putative misjoins;
 
 e) 	.assembly (supersedes .cprops and .asm files)
-- 	Custom file format that tracks modifications to the input contigs at various stages in the assembly;
+- 	Custom file format that tracks modifications to the input contigs at various stages in the assembly. Together with matching .hic files input to Juicebox Assembly Tools;
 
 f) 	supplementary files:
 - 	edits.for.step.\*.txt; mismatches.at.step.\*.txt; suspect_2D.at.step.\*.txt - list of problematic regions (Juicebox 2D annotation format);
