@@ -94,17 +94,30 @@ ADDITIONAL OPTIONS:
 --polisher-fine-resolution editor_fine_resiolution				Polisher fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
 
 **splitter**
---splitter-input-size polisher_input_size			Splitter input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (default is 1000000).
---splitter-coarse-resolution editor_coarse_resolution				Splitter coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
---splitter-coarse-region editor_coarse_region			Splitter  triangular motif region size (default is 3000000).
---splitter-coarse-stringency editor_coarse_stringency				Splitter stringency parameter (default is 55).
---splitter-saturation-centile editor_saturation_centile				Splitter saturation parameter (default is 5).
---splitter-fine-resolution editor_fine_resiolution				Splitter fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
+--splitter-input-size splitter_input_size
+			Splitter input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (Default: 1000000).
+--splitter-coarse-resolution splitter_coarse_resolution
+			Splitter coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (Default: 25000).
+--splitter-coarse-region splitter_coarse_region
+			Splitter  triangular motif region size (Default: 3000000).
+--splitter-coarse-stringency splitter_coarse_stringency
+			Splitter stringency parameter (Default: 55).
+--splitter-saturation-centile splitter_saturation_centile
+			Splitter saturation parameter (Default: 5).
+--splitter-fine-resolution splitter_fine_resiolution
+			Splitter fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (Default: 1000).
 
-**merger** TODO: CURRENTLY HARDCODED
--b band_size				Band size for alternative haplotype detection (default is 1000000 or 1Mb).
--l lastz_opt_string			LASTZ aligner option string (default is XXX).
--i identity					XXX
+**merger**
+--merger-search-band merger_search_band		
+			Distance (in bp) within which to locally search for alternative haplotypes to a given contig or scaffold, from the position of their suggested incorporation in the assembly. The larger the original input contigs/scaffolds, the larger band size it might be necessary to set. Default: 3000000.
+--merger-alignment-score merger_alignment_score
+			Minimal LASTZ alignment score for nearby sequences (located in the assembly within the distance defined by the merger_search_band parameter) to be recongnized as alternative haplotypes. Default: 50000000.
+--merger-alignment-identity merger_alignment_identity
+			Minimal identity score required from similar nearby sequences (per length) for them to be classified as alternative haplotypes. Default: 20.
+--merger-alignment-length	merger_alignment_length
+			Minimal length necessary to recognize similar nearby sequences as alternative haplotypes. Default: 20000.
+--merger-lastz-options	merger_lastz_options
+			Option string to customize LASTZ alignment. Default: \"--gfextend\ --gapped\ --chain=200,200\"		
 
 *****************************************************
 "
@@ -143,9 +156,12 @@ splitter_coarse_region=3000000
 splitter_coarse_stringency=55
 splitter_saturation_centile=5
 
-# merge default params
-band_size=1000000
-
+# merger default params after option handling
+default_merger_search_band=3000000
+default_merger_alignment_score=50000000
+default_merger_alignment_identity=20
+default_merger_alignment_length=20000
+default_merger_lastz_options=\"--gfextend\ --gapped\ --chain=200,200\"
 
 stage=""	# by default run full pipeline
 early=false
@@ -414,6 +430,63 @@ while :; do
 			fi
         	shift
         ;;
+        
+# merger
+        --merger-search-band) OPTARG=$2
+        	re='^[0-9]+$'	## TODO: specify/generalize re matrix resolutions size
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-search-band flag was triggered, merger will look for alternative haplotypes to input contigs and scaffolds within $OPTARG bases from their suggested location in the assembly." >&1
+				merger_search_band=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search region size. Exiting!" >&2
+				exit
+			fi
+        	shift
+        ;;
+        --merger-alignment-length) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-alignment-length flag was triggered, overlap length threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+				merger_alignment_length=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search alignment length. Exiting!" >&2
+				exit 1
+			fi
+        	shift
+        ;;
+        --merger-alignment-identity) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-alignment-identity flag was triggered, lastz alignment identity threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+				merger_alignment_identity=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search alignment identity. Exiting!" >&2
+				exit 1
+			fi
+        	shift
+        ;;     
+        --merger-alignment-score) OPTARG=$2
+        	re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-alignment-score flag was triggered, lastz alignment score threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+				merger_alignment_score=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search alignment score. Exiting!" >&2
+				exit
+			fi
+        	shift
+        ;;
+        --merger-lastz-options) OPTARG=$2
+        	re='^\"--.+\"$'
+        	if [[ $OPTARG =~ $re ]]; then
+        		echo " --merger-lastz-options flag was triggered, overlap length threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+        		merger_lastz_options="$OPTARG"
+			else
+				echo ":( Wrong syntax for alternative haplotype search lastz option string. Exiting!" >&2
+				exit 1
+			fi
+        	shift
+        ;;
 # TODO: merger, sealer, etc options              
 		--) # End of all options
 			shift
@@ -438,6 +511,16 @@ done
 [[ ${splitter_coarse_region} -le ${splitter_coarse_resolution} ]] && echo >&2 ":( Requested depletion region size ${splitter_coarse_region} and bin size ${splitter_coarse_resolution} parameters for splitter are incompatible. Run ${pipeline}/edit/run-mismatch-detector.sh -h for instructions. Exiting!" && exit 1
 [[ ${splitter_coarse_resolution} -le ${splitter_fine_resolution} ]] && echo >&2 ":( Requested mismatch localization resolution ${splitter_fine_resolution} and coarse search bin size ${splitter_coarse_resolution} parameters for splitter are incompatible. Run ${pipeline}/edit/run-mismatch-detector.sh -h for instructions. Exiting!" && exit 1
 
+([[ $diploid == "false" ]] && [[ ! -z ${merger_band_width} || ! -z ${merger_alignment_score} || ! -z ${merger_alignment_identity} || ! -z ${merger_alignment_length} || ! -z ${merger_lastz_options} || $stage == "merge" ]]) && echo >&2 ":( Some options were requested that are not compatible with default haploid mode. Please include --mode diploid in your option list or remove flag calls associated with the merge block of the pipeline. Exiting!" && exit 1
+
+## set merger default parameters if missing any
+if [[ $diploid == "true" ]]; then
+	[[ -z ${merger_search_band} ]] && merger_search_band=${default_merger_search_band}
+	[[ -z ${merger_alignment_score} ]] && merger_alignment_score=${default_merger_alignment_score}
+	[[ -z ${merger_alignment_identity} ]] && merger_alignment_identity=${default_merger_alignment_identity}
+	[[ -z ${merger_alignment_length} ]] && merger_alignment_length=${default_merger_alignment_length}
+	[[ -z ${merger_lastz_options} ]] && merger_lastz_options=${default_merger_lastz_options}
+fi
 
 ############### HANDLE EXTERNAL DEPENDENCIES ###############
 
@@ -703,20 +786,30 @@ fi
 
 if [ "$stage" != "finalize" ] && [ $diploid == "true" ]; then
 	
-	[ ! -s ${genomeid}.rawchrom.cprops ] || [ ! -s ${genomeid}.rawchrom.asm ] || [ ! -s ${genomeid}.rawchrom.fasta ] && echo >&2 ":( No raw chromosomal files were found. Please rerun he pipeline to include the seal segment" && exit 1
+	[ ! -s ${genomeid}.rawchrom.assembly ] || [ ! -s ${genomeid}.rawchrom.fasta ] && echo >&2 ":( No raw chromosomal files were found. Please rerun he pipeline to include the seal segment" && exit 1
 	
 	echo "###############" >&1
 	echo "Starting merge:" >&1
 	
+	[[ -f ${genomeid}.rawchrom.cprops || -f ${genomeid}.rawchrom.asm ]] || awk -f ${pipeline}/utils/convert-assembly-to-cprop-and-asm.awk ${genomeid}.rawchrom.assembly
+	
 ## TODO: split unsafe, redo via indexing as in haploid case
-	[ -d faSplit ] && echo >&2 "faSplit directory exists. Remove faSplit directory and restart with -S merge flag. Exiting!" && exit 1
-	mkdir faSplit && cd faSplit && awk -f ${pipeline}/merge/split-fasta-by-cname.awk ../${genomeid}.rawchrom.cprops ../${genomeid}.rawchrom.fasta && cd ..
+	if [ -d faSplit ]; then
+		echo >&2 ":| WARNING: Using existing faSplit folder for merge. Totally fine if you know what you are doing. If unsure delete the faSplit folder and restart pipeline."
+	else
+		echo "...preparing fasta..." >&1
+		mkdir faSplit && cd faSplit && awk -f ${pipeline}/merge/split-fasta-by-cname.awk ../${genomeid}.rawchrom.cprops ../${genomeid}.rawchrom.fasta && cd ..
+	fi
 
-	bash ${pipeline}/merge/run-asm-merger.sh -b ${band_size} ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm faSplit
+	bash ${pipeline}/merge/run-asm-merger.sh -b ${merger_search_band} -s ${merger_alignment_score} -i ${merger_alignment_identity} -l ${merger_alignment_length} -o "${merger_lastz_options}" ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm faSplit
 
 	cp ${genomeid}.rawchrom/${genomeid}.rawchrom_merged.asm ${genomeid}.final.asm
 	ln -sf ${genomeid}.rawchrom/merged_${genomeid}.rawchrom.fa ${genomeid}.final.fasta
 	awk -f ${pipeline}/utils/generate-cprops-file.awk ${genomeid}.final.fasta > ${genomeid}.final.cprops
+	cat <(awk '{$0=">"$0}1' ${genomeid}.final.cprops) ${genomeid}.final.asm > ${genomeid}.final.assembly
+	
+	# cleanup
+	rm -r faSplit
 fi
 
 ############### FINALIZING ###############
