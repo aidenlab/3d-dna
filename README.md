@@ -51,11 +51,10 @@ to see a full list of available options.
 
 Another script [run-asm-pipeline-post-review.sh](https://github.com/theaidenlab/3d-dna/blob/master/run-asm-pipeline-post-review.sh) is designed to execute the later stages of the pipeline (finalize or seal and finalize) when picking up after Juicebox Assembly Tools (JBAT) review. See [Genome Assembly Cookbook](http://aidenlab.org/assembly/manual_180322.pdf) and also [this preprint](https://www.biorxiv.org/content/early/2018/01/28/254797) for details about JBAT.
 
-Run  
+Run the following for the description of arguments and options: 
 ```sh
 ./run-asm-pipeline-post-review.sh –h|--help
 ```
-for details.
 
 ### Individual modules
 The wrapper script calls individual modules of the pipeline. Code related to any particular module is organized into individual folders. The modules can also be run as separate scripts. The list of individual modules with their main wrapper scripts is given below:
