@@ -16,6 +16,8 @@ If you use this code or the resulting assemblies, please cite the following pape
 
 Dudchenko, O., Batra, S.S., Omer, A.D., Nyquist, S.K., Hoeger, M., Durand, N.C., Shamim, M.S., Machol, I., Lander, E.S., Aiden, A.P., et al. (2017). *De novo assembly of the *Aedes aegypti* genome using Hi-C yields chromosome-length scaffolds.* Science. Apr 7; 356(6333):92-95. doi: https://doi.org/10.1126/science.aal3327. Epub 2017 Mar 23.
 
+#### This software is distributed under The MIT License (MIT).
+
 ### Overview of the pipeline
 `Software version: 180419`
 
@@ -115,8 +117,6 @@ f) 	supplementary files:
 - 	edits.for.step.\*.txt; mismatches.at.step.\*.txt; suspect_2D.at.step.\*.txt - list of problematic regions (Juicebox 2D annotation format);
 - 	alignments.txt (for diploid mode only) – pairwise alignment data for alternative haplotype candidates, parsed from LASTZ output.
 
-
-#### This software is distributed under The MIT License (MIT).
 [Supporting Online Materials]: <http://science.sciencemag.org/content/suppl/2017/03/22/science.aal3327.DC1?_ga=1.9816115.760837492.1490574064>
 [Dudchenko et al., De novo assembly of the Aedes aegypti genome using Hi-C yields chromosome-length scaffolds. Science, 2017.]: <http://science.sciencemag.org/content/early/2017/03/22/science.aal3327.full>
 [Juicer (Durand & Shamim et al., Cell Systems, 2016)]: <http://www.cell.com/cell-systems/abstract/S2405-4712(16)30219-8>
