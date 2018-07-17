@@ -28,13 +28,13 @@ We begin with a series of iterative steps whose goal is to eliminate misjoins in
 This post-processing includes four steps: (i) a polishing algorithm which attempts to fix errors when cumulative 3D signal 'wins' over the diagonal; (ii) a chromosome splitting algorithm, which is used to extract the chromosome-length scaffolds from the megascaffold; (iii) a sealing algorithm, which detects false positives in the misjoin correction process, and restores the erroneously removed sequence from the original scaffold; and (iv) a merge algorithm, which corrects misassembly errors due to undercollapsed heterozygosity in the input scaffolds. Step (iv) are omitted for Hs2-HiC, which is not in the Rabl configuration and lacks substantial undercollapsed heterozygosity.
 
 #### Prerequisites
-- `LastZ (version 1.03.73 released 20150708)` – for AaegL4 only
-- `Python >=2.7`
-- `scipy numpy matplotlib`
+- `LastZ (version 1.03.73 released 20150708)` – for diploid mode only
 - `Java version >=1.7`
 - `Bash >=4`
 - `GNU Awk >=4.0.2`
 - `GNU coreutils sort >=8.11`
+- `Python >=2.7` -  for chromosome number-aware splitter module only 
+- `scipy numpy matplotlib` - for chromosome number-aware splitter module only
 
 #### Recommended
 - `GNU Parallel >=20150322` – highly recommended to increase performance
