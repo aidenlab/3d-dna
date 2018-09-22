@@ -15,7 +15,7 @@ label="HiC"
 
 USAGE="
 ***********************************************
-./finalize-output.sh -c <number_of_chromosomes> -s <tiny_threshold> -l <label> <cprops> <asm> <fasta> <type>
+./finalize-output.sh -c <number_of_chromosomes> -s <tiny_threshold> -g <gap_size> -l <label> <cprops> <asm> <fasta> <type>
 ***********************************************
 "
 
@@ -35,14 +35,22 @@ case $opt in
 	;;
 	s) 	re='^[0-9]+$'
         if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]]; then
-	          echo "... -s flag was triggered, treating all contigs/scaffolds shorter than $OPTARG as unattempted" >&1
+	          echo "... -s flag was triggered, treating all contigs/scaffolds shorter than $OPTARG as unattempted." >&1
 	          input_size=$OPTARG
         else
 	          echo ":( Wrong syntax for minimal input contig/scaffold size. Exiting!" >&2 && exit 1
   	  	fi
     ;;
+    g) 	re='^[0-9]+$'
+        if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]]; then
+	          echo "... -g flag was triggered, making gap size between scaffolded draft sequences to be equal to $OPTARG." >&1
+	          gap_size=$OPTARG
+        else
+	          echo ":( Wrong syntax for default gap size parameter value. Using default gap_size=${gap_size}!" >&2
+  	  	fi
+    ;;
     l) label=$OPTARG
-    	echo "... -l flag was triggered. Output will appear with headers of the form ${OPTARG}_hic_scaffold_#"
+    	echo "... -l flag was triggered. Output will appear with headers of the form ${OPTARG}_hic_scaffold_#."
     ;;
 	*) echo "$USAGE" >&2
 		exit 1
@@ -129,6 +137,8 @@ case $type in
 		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > ${label}.FINAL.fasta
 		
 		# clean up: remove no_overhangs files
+		
+		awk -v disable_checks=1 -f ${pipeline}/utils/convert-cprops-and-asm-to-assembly.awk temp.cprops temp.asm && mv temp.assembly ${label}.FINAL.assembly
 		rm temp.cprops temp.asm temp.fasta ${cprops} ${asm} ${fasta}
 		
 		exit 
