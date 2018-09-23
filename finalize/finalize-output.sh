@@ -21,7 +21,7 @@ USAGE="
 
 ## HANDLE OPTIONS
 
-while getopts "c:s:l:h" opt; do
+while getopts "c:s:l:g:h" opt; do
 case $opt in
 	h) echo "$USAGE"
 		exit 0
