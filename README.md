@@ -99,8 +99,8 @@ a) 	.fasta files
 - 	“final” – input with all the misjoin correction introduced;
 
 b) 	.hic files
--	"FINAL" - after the addition of gaps to the chromosome-length assembly (built on request with --build-gapped-map option);
--   	"final" - after sealing stage;
+-	“FINAL“ - after the addition of gaps to the chromosome-length assembly (built on request with --build-gapped-map option);
+-   	“final“ - after sealing stage;
 - 	“polished” – after polishing stage;
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
@@ -113,8 +113,8 @@ d) 	.bed & .wig files
 
 e) 	.assembly (supersedes .cprops and .asm files)
 - 	Custom file format that tracks modifications to the input contigs at various stages in the assembly. Together with matching .hic files input to Juicebox Assembly Tools. The files are available for all stages of the assembly including:
--	"FINAL" - after the addition of gaps to the chromosome-length assembly;
--   	"final" - after sealing stage;
+-	“FINAL“ - after the addition of gaps to the chromosome-length assembly;
+-   	“final“ - after sealing stage;
 - 	“polished” – after polishing stage;
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
