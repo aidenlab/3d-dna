@@ -19,7 +19,7 @@ Dudchenko, O., Batra, S.S., Omer, A.D., Nyquist, S.K., Hoeger, M., Durand, N.C.,
 #### This software is distributed under The MIT License (MIT).
 
 ### Overview of the pipeline
-`Software version: 180419`
+`Software version: 180922`
 
 An overview of the detailed workflow of the 3D-DNA pipeline is schematically given in Fig. S1 in [(Dudchenko et al., *Science*, 2017)](http://science.sciencemag.org/content/356/6333/92).
 
@@ -95,11 +95,12 @@ l) `	data`	– mapping data tables used for validation of the 2017 assemblies (A
 The pipeline generates a number of files. The types of files are listed below. The main outputs are the fasta files annotated as “FINAL” which contains the output scaffolds.
 
 a) 	.fasta files
-- 	“FINAL” – chromosome-length scaffolds, small and tiny scaffolds;
-- 	“final” – Input with all the misjoin correction introduced;
+- 	“FINAL” – chromosome-length scaffolds;
+- 	“final” – input with all the misjoin correction introduced;
 
 b) 	.hic files
--   "final" - after sealing stage;
+-	"FINAL" - after the addition of gaps to the chromosome-length assembly (built on request with --build-gapped-map option);
+-   	"final" - after sealing stage;
 - 	“polished” – after polishing stage;
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
@@ -111,11 +112,18 @@ d) 	.bed & .wig files
 - 	Tracks illustrating putative misjoins;
 
 e) 	.assembly (supersedes .cprops and .asm files)
-- 	Custom file format that tracks modifications to the input contigs at various stages in the assembly. Together with matching .hic files input to Juicebox Assembly Tools;
+- 	Custom file format that tracks modifications to the input contigs at various stages in the assembly. Together with matching .hic files input to Juicebox Assembly Tools. The files are available for all stages of the assembly including:
+-	"FINAL" - after the addition of gaps to the chromosome-length assembly;
+-   	"final" - after sealing stage;
+- 	“polished” – after polishing stage;
+- 	“resolved” – after editing and scaffolding;
+- 	[0123…] – correspond to the assembly at individual editing iterations;
+
 
 f) 	supplementary files:
 - 	edits.for.step.\*.txt; mismatches.at.step.\*.txt; suspect_2D.at.step.\*.txt - list of problematic regions (Juicebox 2D annotation format);
 - 	alignments.txt (for diploid mode only) – pairwise alignment data for alternative haplotype candidates, parsed from LASTZ output.
+
 
 [Supporting Online Materials]: <http://science.sciencemag.org/content/suppl/2017/03/22/science.aal3327.DC1?_ga=1.9816115.760837492.1490574064>
 [Dudchenko et al., De novo assembly of the Aedes aegypti genome using Hi-C yields chromosome-length scaffolds. Science, 2017.]: <http://science.sciencemag.org/content/early/2017/03/22/science.aal3327.full>
