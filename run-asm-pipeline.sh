@@ -136,7 +136,7 @@ ADDITIONAL OPTIONS:
 			Option string to customize LASTZ alignment. Default: \"--gfextend\ --gapped\ --chain=200,200\"		
 
 **finalizer**
--g|--gap_size gap_size
+-g|--gap-size gap_size
 			Gap size to be added between scaffolded sequences in the final chromosome-length scaffolds (default is 500).
 
 **supplementary**
