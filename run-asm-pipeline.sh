@@ -23,10 +23,14 @@
 # THE SOFTWARE.
 ##########
 #
-# 3D DNA de novo genome assembly pipeline: 180114 version.
+# 3D-DNA de novo genome assembly pipeline.
 #
 
+version=180922
+
 echo `readlink -f $0`" "$*
+
+echo "version: "${version}
 
 #set -x
 
@@ -78,20 +82,32 @@ ADDITIONAL OPTIONS:
 -q|--mapq mapq					Mapq threshold for scaffolding and visualization (default is 1).
 
 **misjoin detector**
---editor-coarse-resolution editor_coarse_resolution				Misjoin editor coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
---editor-coarse-region editor_coarse_region			Misjoin editor triangular motif region size (default is 125000).
---editor-coarse-stringency editor_coarse_stringency				Misjoin editor stringency parameter (default is 55).
---editor-saturation-centile editor_saturation_centile				Misjoin editor saturation parameter (default is 5).
---editor-fine-resolution editor_fine_resiolution				Misjoin editor fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
---editor-repeat-coverage editor_repeat_coverage			Misjoin editor threshold repeat coverage (default is 2). 
+--editor-coarse-resolution editor_coarse_resolution
+			Misjoin editor coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
+--editor-coarse-region editor_coarse_region
+			Misjoin editor triangular motif region size (default is 125000).
+--editor-coarse-stringency editor_coarse_stringency
+			Misjoin editor stringency parameter (default is 55).
+--editor-saturation-centile editor_saturation_centile
+			Misjoin editor saturation parameter (default is 5).
+--editor-fine-resolution editor_fine_resiolution
+			Misjoin editor fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
+--editor-repeat-coverage editor_repeat_coverage
+			Misjoin editor threshold repeat coverage (default is 2). 
 
 **polisher**
---polisher-input-size polisher_input_size			Polisher input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (default is 1000000).
---polisher-coarse-resolution editor_coarse_resolution				Polisher coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
---polisher-coarse-region editor_coarse_region			Polisher  triangular motif region size (default is 3000000).
---polisher-coarse-stringency editor_coarse_stringency				Polisher stringency parameter (default is 55).
---polisher-saturation-centile editor_saturation_centile				Polisher saturation parameter (default is 5).
---polisher-fine-resolution editor_fine_resiolution				Polisher fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
+--polisher-input-size polisher_input_size
+			Polisher input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (default is 1000000).
+--polisher-coarse-resolution editor_coarse_resolution
+			Polisher coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
+--polisher-coarse-region editor_coarse_region
+			Polisher  triangular motif region size (default is 3000000).
+--polisher-coarse-stringency editor_coarse_stringency
+			Polisher stringency parameter (default is 55).
+--polisher-saturation-centile editor_saturation_centile
+			Polisher saturation parameter (default is 5).
+--polisher-fine-resolution editor_fine_resiolution
+			Polisher fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
 
 **splitter**
 --splitter-input-size splitter_input_size
@@ -119,6 +135,20 @@ ADDITIONAL OPTIONS:
 --merger-lastz-options	merger_lastz_options
 			Option string to customize LASTZ alignment. Default: \"--gfextend\ --gapped\ --chain=200,200\"		
 
+**finalizer**
+-g|--gap_size gap_size
+			Gap size to be added between scaffolded sequences in the final chromosome-length scaffolds (default is 500).
+
+**supplementary**
+-e|--early-exit
+			Option to exit after first round of scaffolding.
+-f|--fast-start
+			Option to pick up processing assuming the first round of scaffolding is done. In conjunction with --early-exit this option is to help tune the parameters for best performance.
+--sort-output
+			Option to sort the chromosome-length scaffolds by size, in the descending order.
+--build-gapped-map
+			Option to output an additional contact map corresponding to the assembly after the gaps have been added between scaffolded sequences.
+
 *****************************************************
 "
 
@@ -130,7 +160,7 @@ diploid="false"	# by default run haploid pipeline
 input_size=15000 # contigs/scaffolds smaller than input_size are ignored
 MAX_ROUNDS=2	# use 2 for Hs2 and 9 for AaegL4
 
-mapq=1	# read mapping quality threshold for Hi-C scaffolder
+mapq=1	# default read mapping quality threshold for Hi-C scaffolder
 
 # misassembly detector and editor default params
 editor_coarse_resolution=25000	
@@ -163,10 +193,15 @@ default_merger_alignment_identity=20
 default_merger_alignment_length=20000
 default_merger_lastz_options=\"--gfextend\ --gapped\ --chain=200,200\"
 
+# finalizer default params
+gap_size=500	# default length of gaps to be added between scaffolded sequences in the chrom-length scaffolds
+
+# supplementary options
 stage=""	# by default run full pipeline
 early=false
 fast=false
 sort_output=false
+build_gapped_map=false
 
 ############### HANDLE OPTIONS ###############
 
@@ -181,7 +216,7 @@ while :; do
 			exit 0
         ;;
 
-## short menu options
+## SHORT MENU OPTIONS
 		-m|--mode) OPTARG=$2
 			if [ "$OPTARG" == "haploid" ] || [ "$OPTARG" == "diploid" ]; then
 				echo >&1 " -m|--mode flag was triggered. Running in $OPTARG mode."
@@ -213,23 +248,6 @@ while :; do
 			fi
         	shift
         ;;
-        -s|--stage) OPTARG=$2
-			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "merge" ] || [ "$OPTARG" == "finalize" ]; then
-			echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
-			stage=$OPTARG
-			else
-				echo ":( Wrong syntax for pipeline stage. Exiting!" >&2
-			fi
-        	shift
-        ;;
-		-e|--early-exit)
-			echo " -e|--early-exit flag was triggered, will do early exit." >&1
-			early=true
-		;;
-		-f|--fast-start)
-			echo " -f|--fast-start flag was triggered, will start assuming first iterative round and map are available." >&1
-			fast=true
-		;;
 # scaffolder
         -q|--mapq) OPTARG=$2 ##TODO: check that propagates consistently, not tested sufficiently
 			re='^[0-9]+$'
@@ -241,11 +259,18 @@ while :; do
 			fi
         	shift
         ;;
-## long menu options
-		--sort-output)
-			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
-			sort_output=true
-		;;
+# organizational
+		-s|--stage) OPTARG=$2
+			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "merge" ] || [ "$OPTARG" == "finalize" ]; then
+			echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
+			stage=$OPTARG
+			else
+				echo ":( Wrong syntax for pipeline stage. Exiting!" >&2
+			fi
+        	shift
+        ;;
+        
+## LONG MENU OPTIONS
 # misjoin editor
         --editor-saturation-centile) OPTARG=$2
 			re='^[0-9]+\.?[0-9]*$'
@@ -487,6 +512,35 @@ while :; do
 			fi
         	shift
         ;;
+        
+# finalizer        
+		-g|--gap-size) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " -g|--gap-size flag was triggered, will add gaps of size $OPTARG between scaffolded sequences in the chromosome-length scaffolds." >&1
+				gap_size=$OPTARG
+			else
+				echo ":( Wrong syntax for gap size parameter value. Using the default value ${gap_size}." >&2
+			fi
+        	shift 
+		;;
+# supplementary options:
+		-e|--early-exit)
+			echo " -e|--early-exit flag was triggered, will do early exit." >&1
+			early=true
+		;;
+		-f|--fast-start)
+			echo " -f|--fast-start flag was triggered, will start assuming first iterative round and map are available." >&1
+			fast=true
+		;;
+		--sort-output)
+			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
+			sort_output=true
+		;;
+		--build-gapped-map)
+			echo " --build-gapped-map was triggered, will build an additional hic file corresponding to final assembly with gaps added between draft sequences." >&1
+			build_gapped_map=true
+		;;
 # TODO: merger, sealer, etc options              
 		--) # End of all options
 			shift
@@ -625,9 +679,9 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
             
         # build a hic map of the resulting assembly
             echo "...visualizing round ${ROUND} results:" >&1
-            bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i ${current_cprops} ${genomeid}.${ROUND}.asm ${current_mnd}
-            rm temp.${genomeid}.${ROUND}.asm_mnd.txt
-
+            bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${current_cprops} ${genomeid}.${ROUND}.asm ${current_mnd}
+#            rm temp.${genomeid}.${ROUND}.asm_mnd.txt
+			rm ${current_mnd}
         # early exit on round zero if requested
             [ "$early" == "true" ] && exit 0
 		fi
@@ -691,7 +745,7 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
 	ln -sf ${genomeid}.${ROUND}_asm.scaffold_track.txt ${genomeid}.resolved_asm.scaffold_track.txt
 	ln -sf ${genomeid}.${ROUND}_asm.superscaf_track.txt ${genomeid}.resolved_asm.superscaf_track.txt
 	ln -sf ${genomeid}.${ROUND}.hic ${genomeid}.resolved.hic
-	ln -sf ${genomeid}.mnd.${ROUND}.txt ${genomeid}.mnd.resolved.txt
+	#ln -sf ${genomeid}.mnd.${ROUND}.txt ${genomeid}.mnd.resolved.txt
 
 fi
 
@@ -700,12 +754,12 @@ fi
 
 if [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 
-	[ ! -f ${genomeid}.resolved.cprops ] || [ ! -f ${genomeid}.resolved.asm ] || [ ! -f ${genomeid}.resolved.hic ] || [ ! -f ${genomeid}.mnd.resolved.txt ] && echo >&2 ":( No resolved files are found. Please rerun the pipeline to include the scaffold segment. Exiting!" && exit 1
+	[ ! -f ${genomeid}.resolved.cprops ] || [ ! -f ${genomeid}.resolved.asm ] || [ ! -f ${genomeid}.resolved.hic ] && echo >&2 ":( No resolved files are found. Please rerun the pipeline to include the scaffold segment. Exiting!" && exit 1
 
 	echo "###############" >&1
 	echo "Starting polish:" >&1
 	
-	bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
+	bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -q 0 -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
 	
 	mv ${genomeid}.resolved.polish.cprops ${genomeid}.polished.cprops
 	mv ${genomeid}.resolved.polish.asm ${genomeid}.polished.asm
@@ -734,7 +788,7 @@ if [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize"
 
 	echo "###############" >&1
 	echo "Starting split:" >&1
-	bash ${pipeline}/split/run-asm-splitter.sh -p ${parallel} -j ${genomeid}.polished.hic -a ${genomeid}.polished_asm.scaffold_track.txt -b ${genomeid}.polished_asm.superscaf_track.txt -s ${splitter_input_size} -c ${splitter_saturation_centile} -w ${splitter_coarse_resolution} -d ${splitter_coarse_region} -k ${splitter_coarse_stringency} -n ${splitter_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.polished.cprops ${genomeid}.polished.asm
+	bash ${pipeline}/split/run-asm-splitter.sh -p ${parallel} -q ${mapq} -j ${genomeid}.polished.hic -a ${genomeid}.polished_asm.scaffold_track.txt -b ${genomeid}.polished_asm.superscaf_track.txt -s ${splitter_input_size} -c ${splitter_saturation_centile} -w ${splitter_coarse_resolution} -d ${splitter_coarse_region} -k ${splitter_coarse_stringency} -n ${splitter_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.polished.cprops ${genomeid}.polished.asm
 		
 	mv ${genomeid}.polished.split.cprops ${genomeid}.split.cprops
 	mv ${genomeid}.polished.split.asm ${genomeid}.split.asm
@@ -752,11 +806,14 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 	
 	echo "###############" >&1
 	echo "Starting sealing:" >&1
-
-	bash ${pipeline}/seal/seal-asm.sh -s ${input_size} ${genomeid}.split.cprops ${genomeid}.split.asm
-
-	mv ${genomeid}.split.sealed.cprops ${genomeid}.rawchrom.cprops
-	mv ${genomeid}.split.sealed.asm ${genomeid}.rawchrom.asm
+	
+	# start slowly converting to .assembly as main input. If necessary split inside a particular block and cleanup after
+	cat <(awk '{$0=">"$0}1' ${genomeid}.split.cprops) ${genomeid}.split.asm > ${genomeid}.split.assembly
+	
+	bash ${pipeline}/seal/run-assembly-sealer.sh -i ${input_size} ${genomeid}.split.assembly
+	
+	mv ${genomeid}.split.sealed.assembly ${genomeid}.rawchrom.assembly
+	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
 
 	# sort output by scaffold size if requested (except for unattempted which we keep in the end)
 	if [ "$sort_output" == "true" ]; then
@@ -765,9 +822,9 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 
 	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.rawchrom.cprops ${orig_mnd} > ${genomeid}.rawchrom.mnd.txt
 
-	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm ${genomeid}.rawchrom.mnd.txt
+	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm ${genomeid}.rawchrom.mnd.txt
 	
-	rm ${genomeid}.rawchrom.mnd.txt temp.${genomeid}.rawchrom.asm_mnd.txt
+	rm ${genomeid}.rawchrom.mnd.txt
 
 	# prep for merging and finalizing
 	awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.rawchrom.cprops ${orig_fasta} > ${genomeid}.rawchrom.fasta
@@ -791,7 +848,7 @@ if [ "$stage" != "finalize" ] && [ $diploid == "true" ]; then
 	echo "###############" >&1
 	echo "Starting merge:" >&1
 	
-	[[ -f ${genomeid}.rawchrom.cprops || -f ${genomeid}.rawchrom.asm ]] || awk -f ${pipeline}/utils/convert-assembly-to-cprop-and-asm.awk ${genomeid}.rawchrom.assembly
+	[[ -f ${genomeid}.rawchrom.cprops || -f ${genomeid}.rawchrom.asm ]] || awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
 	
 ## TODO: split unsafe, redo via indexing as in haploid case
 	if [ -d faSplit ]; then
@@ -818,4 +875,12 @@ fi
 
 echo "###############" >&1
 echo "Finilizing output:" >&1
-bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
+bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
+
+# if requested build HiC map with added gaps
+if [ "$build_gapped_map" == "true" ]; then
+	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.FINAL.assembly
+	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.FINAL.cprops ${orig_mnd} > ${genomeid}.FINAL.mnd.txt
+	bash ${pipeline}/visualize/run-assembly-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.FINAL.assembly ${genomeid}.FINAL.mnd.txt
+	rm ${genomeid}.FINAL.mnd.txt ${genomeid}.FINAL.cprops ${genomeid}.FINAL.asm
+fi
