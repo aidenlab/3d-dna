@@ -759,7 +759,7 @@ if [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "merge" ] 
 	echo "###############" >&1
 	echo "Starting polish:" >&1
 	
-	bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -q 0 -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
+bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -q ${mapq} -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
 	
 	mv ${genomeid}.resolved.polish.cprops ${genomeid}.polished.cprops
 	mv ${genomeid}.resolved.polish.asm ${genomeid}.polished.asm
