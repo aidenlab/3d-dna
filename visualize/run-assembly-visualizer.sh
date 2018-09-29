@@ -144,7 +144,7 @@ fi
 
 if [ -z $scale ]; then
 	# calculate necessary zoom
-	totlength=`awk '$0~/^>/{total+=$3}END{print total}' ${assembly}`
+	totlength=`awk '$0~/^>/{len[$2]=$3;len[-$2]=$3;next}{for(i=1;i<=NF;i++){total+=len[$i]}}END{print total}' ${assembly}`
 	scale=$(( 1 + $totlength / 2100000000 ))
 fi
 
@@ -173,8 +173,8 @@ awk -v scale=${scale} 'BEGIN{OFS="\t"; print "chr1", "sx1", "sx2", "chr2", "sy1"
 
 echo "...Building the hic file"
 
-[ $mapq -eq 1 ] && ignore_q_suffix=true ## lab convention to keep mapq 1 wo suffix, otherwise add suffix in case building multiple maps
-[ ${ignore_q_suffix} == "true" ] && mapqsuf="" || mapqsuf="_"${mapq}
+[ $mapq -eq 1 ] && ignore_mapq_suffix=true ## lab convention to keep mapq 1 wo suffix, otherwise add suffix in case building multiple maps
+[ ${ignore_mapq_suffix} == "true" ] && mapqsuf="" || mapqsuf="_"${mapq}
 
 rLen=${#res[@]}
 add_options=$(( res[0]/scale ))

@@ -29,7 +29,7 @@ FILENAME==ARGV[1]{
 	print > substr(ARGV[2], 1, length(ARGV[2])-4)".assembly"
 }
 END{
-	if (cprops_counter!=asm_counter){
+	if (cprops_counter!=asm_counter && !disable_checks){
 		print ":( Input files not mutually compatible. Exiting!" > "/dev/stderr"
 		system("rm "substr(ARGV[2], 1, length(ARGV[2])-4)".assembly")
 	}

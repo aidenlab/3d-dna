@@ -18,4 +18,4 @@ mnd=$2
 pipeline=`cd "$( dirname $0)" && cd .. && pwd`
 edit_mnd_script=${pipeline}/edit/edit-mnd-according-to-new-cprops.awk
 
-[ $parallel == "true" ] && parallel -a ${mnd} --pipepart --will-cite --jobs 80% --block 1G "awk -f ${edit_mnd_script} ${new_cprops} - " || awk -f ${edit_mnd_script} ${new_cprops} -
+[ $parallel == "true" ] && parallel -a ${mnd} --pipepart --will-cite --jobs 80% --block 1G "awk -f ${edit_mnd_script} ${new_cprops} - " || awk -f ${edit_mnd_script} ${new_cprops} ${mnd}

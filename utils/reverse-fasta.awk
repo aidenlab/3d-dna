@@ -24,6 +24,62 @@ function substitute(char){
 		return "N"
 	else if (char=="n")
 		return "n"
+	else
+	{
+		if(!warning)
+		{
+			print ":| WARNING: fasta contains ambiguous bases!" > "/dev/stderr"
+			warning=1
+		}
+		if (char=="Y")
+			return "R"
+		else if (char=="y")
+			return "r"
+		else if (char=="R")
+			return "Y"
+		else if (char=="r")
+			return "y"
+		else if (char=="W")
+			return "W"
+		else if (char=="w")
+			return "w"
+		else if (char=="S")
+			return "S"
+		else if (char=="s")
+			return "s"
+		else if (char=="K")
+			return "M"
+		else if (char=="k")
+			return "m"
+		else if (char=="M")
+			return "K"
+		else if (char=="m")
+			return "k"
+		else if (char=="D")
+			return "H"
+		else if (char=="d")
+			return "h"
+		else if (char=="H")
+			return "D"
+		else if (char=="h")
+			return "d"
+		else if (char=="V")
+			return "B"
+		else if (char=="v")
+			return "b"
+		else if (char=="B")
+			return "V"
+		else if (char=="b")
+			return "v"
+		else if (char=="X")
+			return "X"
+		else if (char=="x")
+			return "x"
+		else {
+			print "!ERROR: Unknown base, exiting!" > "/dev/stderr"
+			exit
+		}
+	}
 }
 $0~/>/{
 	for(i=n;i>=1;i--)
