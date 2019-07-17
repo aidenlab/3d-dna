@@ -14,7 +14,7 @@ Feel free to post your questions and comments at:
 
 
 ### Overview of the pipeline
-`Software version: 180419`
+`Software version: 190716`
 
 An overview of the detailed workflow of the 3D-DNA pipeline is schematically given in Fig. S1 in [(Dudchenko et al., *Science*, 2017)](http://science.sciencemag.org/content/356/6333/92).
 
