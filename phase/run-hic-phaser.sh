@@ -176,7 +176,6 @@ mnd=$2
 #1) parse original vcf file [ potentially unnecessary safeguard against unsorted vcf ]
 echo ":) Parsing vcf file..." >&1
 [ -z ${psf} ] && ( cat ${vcf} | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' | awk -v chr=${chr} -v output_prefix="in" -f ${pipeline}/phase/vcf-to-psf-and-assembly.awk && mv "in.assembly" `basename ${vcf} .vcf`".in.assembly" ) && psf="in.psf"
-echo $psf
 echo ":) Done parsing vcf file." >&1
 
 #2) extract SNP overlapping edges from mnd file
