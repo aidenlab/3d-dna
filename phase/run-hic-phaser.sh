@@ -201,7 +201,7 @@ else
 	export verbose=${verbose}
 	export pipeline=${pipeline}
 	doit () { 
-		cmd="awk -v chr=$1 '\$1==\">\"chr{print; id[\$NF]=1; next}(\$1 in id){print}' ${psf} > h.$1.psf && awk -v stringency=${stringency} -v relaxation=${relaxation} -v outfile=out.$1.psf -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk h.$1.psf ${edge_mnd} && rm h.$1.psf"
+		cmd="awk -v chr=$1 '\$1==\">\"chr{print; id[\$NF]=1; id[-\$NF]=1}\$1~/^>/{next}(\$1 in id){print}' ${psf} > h.$1.psf && awk -v stringency=${stringency} -v relaxation=${relaxation} -v outfile=out.$1.psf -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk h.$1.psf ${edge_mnd} && rm h.$1.psf"
 		eval $cmd
 	}
 	export -f doit

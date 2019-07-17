@@ -30,7 +30,8 @@ BEGIN{
 ## read in .psf file, properties section: this describes individual SNPs. Assumed format: ">CHR POS REF ALT ID"
 FILENAME==ARGV[1]&&($1~/^>/){
 	
-	properties[$NF]=$0
+	properties[NR]=$0
+	participating[$NF]=1
 	if (length(chr)==0){chr=$1}else{if($1!=chr){print ":( SNPs span multiple chromosomes. Exiting!" > "/dev/stderr"; force_exit = 1; exit}}
 	
 	$1=substr($1,2)
@@ -48,7 +49,7 @@ FILENAME==ARGV[1]{
 	split($0, a, " ")
 	for (i in a)
 	{
-		if ((!(a[i] in properties)) && (!(-a[i] in properties))){print ":( Blocks list SNPs not described in the properties section. Exiting!" > "/dev/stderr"; force_exit = 1; exit}
+		if ((!(a[i] in participating)) && (!(-a[i] in participating))){print ":( Blocks list SNPs not described in the properties section. Exiting!" > "/dev/stderr"; force_exit = 1; exit}
 		if (a[i]>0)
 		{
 			blockId[a[i]]=counter
