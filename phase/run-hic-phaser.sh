@@ -54,8 +54,8 @@ OPTIONS:
 		Consider only Hi-C reads that align with minimal mapping quality of mapq (default is 1).
 -s|--stringency stringency
 		Specify stringency parameter for the phaser (default is 3, i.e. 3-fold enrichment in Hi-C signal to one molecule as compared to the other is necessary to phase).
--r|--relaxation relaxation
-		Specify relaxation parameter for the phaser (default is 1, i.e. consider enrichment above the noice level of 1 read)
+-b|--background background
+		Specify background parameter for the phaser (default is 1, i.e. calculate enrichment on top of the noise level of 1 read)
 -h|--help
 		Shows this help.
 
@@ -73,7 +73,7 @@ pipeline=`cd "$( dirname $0)" && cd .. && pwd`
 chr=""
 mapq=1
 stringency=3
-relaxation=1
+background=1
 verbose=""
 
 ############### HANDLE OPTIONS ###############
@@ -110,13 +110,13 @@ while :; do
 			fi
         	shift
         ;;
-        -r|--relaxation) OPTARG=$2
+        -b|--background) OPTARG=$2
 			re='^[0-9]+$'
 			if [[ $OPTARG =~ $re ]]; then
-				echo "... -r|--relaxation flag was triggered, phasing requiring enrichment against $OPTARG read(s) background noise." >&1
-				relaxation=$OPTARG
+				echo "... -b|--background flag was triggered, phasing requiring enrichment against $OPTARG read(s) background noise." >&1
+				background=$OPTARG
 			else
-				echo ":( Wrong syntax for relaxation parameter. Exiting!" >&2
+				echo ":( Wrong syntax for background parameter. Exiting!" >&2
 				exit 1
 			fi
         	shift
@@ -191,17 +191,17 @@ echo ":) Done visualizing input phased blocks."
 #4) phase
 echo ":) Phasing..."
 if [ ! -z "$chr" ]; then
-	{ awk -v stringency=${stringency} -v relaxation=${relaxation} -v outfile="out.psf" -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk ${psf} ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
+	{ awk -v stringency=${stringency} -v background=${background} -v outfile="out.psf" -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk ${psf} ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
 else
 	export SHELL=$(type -p bash)
 	export psf=${psf}
 	export edge_mnd=${edge_mnd}
 	export stringency=${stringency}
-	export relaxation=${relaxation}
+	export background=${background}
 	export verbose=${verbose}
 	export pipeline=${pipeline}
 	doit () { 
-		cmd="awk -v chr=$1 '\$1==\">\"chr{print; id[\$NF]=1; id[-\$NF]=1}\$1~/^>/{next}(\$1 in id){print}' ${psf} > h.$1.psf && awk -v stringency=${stringency} -v relaxation=${relaxation} -v outfile=out.$1.psf -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk h.$1.psf ${edge_mnd} && rm h.$1.psf"
+		cmd="awk -v chr=$1 '\$1==\">\"chr{print; id[\$NF]=1; id[-\$NF]=1}\$1~/^>/{next}(\$1 in id){print}' ${psf} > h.$1.psf && awk -v stringency=${stringency} -v background=${background} -v outfile=out.$1.psf -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk h.$1.psf ${edge_mnd} && rm h.$1.psf"
 		eval $cmd
 	}
 	export -f doit

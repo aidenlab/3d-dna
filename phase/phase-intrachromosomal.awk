@@ -1,8 +1,8 @@
 ## Main phasing script. Expects all SNPs in blocks file to live on one chromosome.
-## USAGE: awk [ -v relaxation=1 -v stringency=3 -v verbose=0 -v outfile=out.psf ] -f phase-intrachromosomal <path to in.psf> <path to edges.mnd.txt>
+## USAGE: awk [ -v background=1 -v stringency=3 -v verbose=0 -v outfile=out.psf ] -f phase-intrachromosomal <path to in.psf> <path to edges.mnd.txt>
 ## INPUT: prephase set file describing available phased blocks (in trivial case 1 block = 1 SNP); dedupped file describing Hi-C contacts between different SNPs (edges.mnd.txt)
 ## OUPUT: output file in .psf format.
-## PARAMETERS: relaxation (default: 1), stringency (default: 3), verbose (default 0, i.e. false). 
+## PARAMETERS: background (default: 1), stringency (default: 3), verbose (default 0, i.e. false). 
 ## Written by O.D. (olga.dudchenko@bcm.edu)
 ## Version: 5/22/19
 ## NOTE: unprompted option ignore_sort [=0 by default i.e. false].
@@ -21,7 +21,7 @@ function invert(string,		str,i,n)
 }
 BEGIN{
 	# set defaults
-	if(!relaxation){relaxation = 2}
+	if(!background){background = 1}
 	if(!stringency){stringency = 1/3}else{stringency = 1/stringency}
 	if(!outfile){outfile="out.psf"}
 
@@ -164,7 +164,7 @@ END{
 			codirected[i]=0
 		}
 		sum[i]=pbscore[i]+nbscore[i]
-		tmp=(diff/stringency/(sum[i]+relaxation))
+		tmp=(diff/stringency/(sum[i]+background))
 		if (tmp>1)
 			conf[i]=tmp	
 	}
@@ -298,7 +298,7 @@ END{
 						codirected[tmpname]=0
 					}
 					sum[tmpname]=pbscore[tmpname]+nbscore[tmpname]
-					tmp=diff/stringency/(sum[tmpname]+relaxation) # something happening here when switching to >1 stringency, need to explore
+					tmp=diff/stringency/(sum[tmpname]+background) # something happening here when switching to >1 stringency, need to explore
 					if (tmp>1)
 						conf[tmpname]=tmp
 				}
@@ -362,7 +362,7 @@ END{
 						codirected[tmpname]=0
 					}
 					sum[tmpname]=pbscore[tmpname]+nbscore[tmpname]
-					tmp=diff/stringency/(sum[tmpname]+relaxation)
+					tmp=diff/stringency/(sum[tmpname]+background)
 					if (tmp>1)
 						conf[tmpname]=tmp
 				}
