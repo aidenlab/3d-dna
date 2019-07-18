@@ -185,7 +185,7 @@ echo ":) Done extracting Hi-C contacts overlapping SNPs.">&1
 
 #3) visualize input
 echo ":) Visualizing input phased blocks..."
-[ -f `basename ${vcf} .vcf`".in.assembly" ] && { bash ${pipeline}/visualize/run-assembly-visualizer.sh -c `basename ${vcf} .vcf`".in.assembly" ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
+[ -f `basename ${vcf} .vcf`".in.assembly" ] && { bash ${pipeline}/visualize/run-assembly-visualizer.sh -c -p ${parallel} `basename ${vcf} .vcf`".in.assembly" ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
 echo ":) Done visualizing input phased blocks."
 
 #4) phase
@@ -212,13 +212,13 @@ else
 		awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u | parallel --will-cite -k "awk '\$0!~/^>/' out.{}.psf" >> out.psf
 		awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u | parallel --will-cite rm out.{}.psf
 	else
-		rm -f out.psf
-		while read -r $var; do
+		rm -f "out.psf.p1" "out.psf.p2"
+		while read -r var; do
 			doit ${var}
 			awk '$0~/^>/' "out."${var}".psf" >> out.psf.p1
 			awk '$0!~/^>/' "out."${var}".psf" >> out.psf.p2
 			rm out.${var}.psf
-		done <<< $(awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u)
+		done < <(awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u)
 		cat "out.psf.p1" "out.psf.p2" > "out.psf"
 		rm "out.psf.p1" "out.psf.p2"
 	fi
@@ -228,10 +228,10 @@ echo ":) Done phasing."
 #5) visualize results and dump vcf
 echo ":) Visualizing output phased blocks..."
 awk -f ${pipeline}/phase/psf-to-assembly.awk "out.psf" > `basename ${vcf} .vcf`".out.assembly" 
-{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c `basename ${vcf} .vcf`".out.assembly" ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
+{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c -p ${parallel} `basename ${vcf} .vcf`".out.assembly" ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
 awk -f ${pipeline}/phase/psf-to-vcf.awk "out.psf" > `basename ${vcf} .vcf`".out.vcf"
 echo ":) Done visualizing output phased blocks."
 
 #6) cleanup
-#rm ${psf} "out.psf"
+#rm ${psf} ${edge_mnd} "out.psf"
 
