@@ -1,11 +1,20 @@
+#!/usr/bin/env python
 import sys
 import re
-from Bio import SeqIO
 
 crop_file = sys.argv[1]
 fasta_file = sys.argv[2]
 
-record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+# parse fasta
+record_dict = {}
+with open(fasta_file, "r") as handle:
+    for line in handle:
+        if line.startswith('>'):
+            seq_name = line.strip().split()[0][1:]
+            tmpseq = record_dict.get(seq_name, [])
+        else:
+            tmpseq.append(line.strip())
+            record_dict[seq_name] = tmpseq
 
 fasta_id_list = []
 # record the position of contigs
@@ -23,7 +32,8 @@ for line in open(crop_file, "r"):
         
         fasta_id_list.append(contig_id)
 
-        seq = str(record_dict[contig_id].seq)
+        seq = record_dict[contig_id]
+        print seq
         print(">{}\n{}".format(contig_id, seq))
     else:
 
@@ -32,7 +42,7 @@ for line in open(crop_file, "r"):
             fasta_id_list.append(contig_id)
             seq_start = 0
             seq_end = seq_start + contig_len
-            seq = str(record_dict[contig_id].seq)[seq_start:seq_end]
+            seq = record_dict[contig_id][seq_start:seq_end]
             if len(items) == 4:
                 print(">{}:::{}\n{}".format(contig_id, items[1], seq))
             else:
@@ -41,7 +51,7 @@ for line in open(crop_file, "r"):
             seq_start = 0 + sum(pos_dict[contig_id])
             seq_end = seq_start + contig_len
             pos_dict[contig_id].append(contig_len)
-            seq = str(record_dict[contig_id].seq)[seq_start:seq_end]
+            seq = record_dict[contig_id][seq_start:seq_end]
             if len(items) == 4:
                 print(">{}:::{}\n{}".format(contig_id, items[1], seq))
             else:
