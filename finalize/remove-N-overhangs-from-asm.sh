@@ -65,5 +65,5 @@ prefix=`basename ${prefix} .fna`
 prefix=`basename ${prefix} .fasta`
 
 #awk -v label1=":::overhang_" -v label2=":::gap" -f ${edit_fasta} ${new_cprops} ${orig_fasta} | awk '$0~/>/{test=1; if($0~/:::gap/){test=0}}test{print}' > ${prefix}.no_overhangs.fasta
-python3 ${edit_fasta} ${new_cprops} ${orig_fasta} | awk '$0~/>/{test=1; if($0~/:::gap/){test=0}}test{print}' > ${prefix}.no_overhangs.fasta
+python3  ${edit_fasta} --label overhang ${new_cprops} ${orig_fasta} | awk '$0~/>/{test=1; if($0~/:::gap/){test=0}}test{print}' > ${prefix}.no_overhangs.fasta
 
