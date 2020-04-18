@@ -30,10 +30,10 @@ for line in open(crop_file, "r"):
         items = []
         if all_items[2] == "debris":
             items.append(all_items[0] + ":::" + all_items[1] + ":::" + all_items[2])
-            items.append(all_items[2:])
+            items = items + all_items[2:]
         else:
             items.append(all_items[0] + ":::" + all_items[1])
-            items.append(all_items[1:])
+            items = items + all_items[1:]
 
     contig_id = items[0]
     contig_len = int(items[-1])
