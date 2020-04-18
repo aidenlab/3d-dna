@@ -2,7 +2,7 @@
 import sys
 import re
 import argparse
-import fileinput
+from Bio import SeqIO
 
 parser = argparse.ArgumentParser()
 #parser.add_argument("--label1", help="fraglabel")
@@ -15,17 +15,7 @@ args = parser.parse_args()
 crop_file = args.crop_file
 fasta_file = args.fasta_file
 
-
-# parse fasta
-record_dict = {}
-with open(fasta_file, "r") as handle:
-    for line in handle:
-        if line.startswith('>'):
-            seq_name = line.strip().split()[0][1:]
-            tmpseq = record_dict.get(seq_name, [])
-        else:
-            tmpseq.append(line.strip())
-            record_dict[seq_name] = tmpseq
+record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
 
 fasta_id_list = []
 # record the position of contigs
@@ -40,10 +30,10 @@ for line in open(crop_file, "r"):
         continue
 
     if len(items) == 3:
-        
+
         fasta_id_list.append(contig_id)
 
-        seq = record_dict[contig_id]
+        seq = str(record_dict[contig_id].seq)
         print(">{}\n{}".format(contig_id, seq))
     else:
 
@@ -52,7 +42,7 @@ for line in open(crop_file, "r"):
             fasta_id_list.append(contig_id)
             seq_start = 0
             seq_end = seq_start + contig_len
-            seq = record_dict[contig_id][seq_start:seq_end]
+            seq = str(record_dict[contig_id].seq)[seq_start:seq_end]
             if len(items) == 4:
                 print(">{}:::{}\n{}".format(contig_id, items[1], seq))
             else:
@@ -61,11 +51,8 @@ for line in open(crop_file, "r"):
             seq_start = 0 + sum(pos_dict[contig_id])
             seq_end = seq_start + contig_len
             pos_dict[contig_id].append(contig_len)
-            seq = record_dict[contig_id][seq_start:seq_end]
+            seq = str(record_dict[contig_id].seq)[seq_start:seq_end]
             if len(items) == 4:
                 print(">{}:::{}\n{}".format(contig_id, items[1], seq))
             else:
                 print(">{}:::{}:::{}\n{}".format(contig_id, items[1], items[2], seq))
-
-        
-
