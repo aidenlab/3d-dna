@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 import sys
 import re
+import argparse
+import fileinput
 
-crop_file = sys.argv[1]
-fasta_file = sys.argv[2]
+parser = argparse.ArgumentParser()
+#parser.add_argument("--label1", help="fraglabel")
+#parser.add_argument("--label2", help="annolabel")
+parser.add_argument("crop_file", help="cprops file")
+parser.add_argument("fasta_file", help="fasta file")
+
+args = parser.parse_args()
+
+crop_file = args.crop_file
+fasta_file = args.fasta_file
+
 
 # parse fasta
 record_dict = {}
@@ -33,7 +44,6 @@ for line in open(crop_file, "r"):
         fasta_id_list.append(contig_id)
 
         seq = record_dict[contig_id]
-        print seq
         print(">{}\n{}".format(contig_id, seq))
     else:
 
