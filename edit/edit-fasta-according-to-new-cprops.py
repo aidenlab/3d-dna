@@ -5,8 +5,8 @@ import argparse
 from Bio import SeqIO
 
 parser = argparse.ArgumentParser()
-#parser.add_argument("--label1", help="fraglabel")
-#parser.add_argument("--label2", help="annolabel")
+parser.add_argument("--label", help="fraglabel, fragment or overhang", default="fragment")
+#parser.add_argument("--label2", help="annolabel debris or gap", default = "debris")
 parser.add_argument("crop_file", help="cprops file")
 parser.add_argument("fasta_file", help="fasta file")
 
@@ -14,6 +14,7 @@ args = parser.parse_args()
 
 crop_file = args.crop_file
 fasta_file = args.fasta_file
+label = args.label
 
 record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
 
@@ -22,7 +23,18 @@ fasta_id_list = []
 pos_dict = {}
 
 for line in open(crop_file, "r"):
-    items = re.split(":::|\s",line.strip())
+    all_items = re.split(":::|\s",line.strip())
+    if label == "fragment":
+        items = all_items
+    else:
+        items = []
+        if all_items[2] == "debris":
+            items.append(all_items[0] + ":::" + all_items[1] + ":::" + all_items[2])
+            items.append(all_items[2:])
+        else:
+            items.append(all_items[0] + ":::" + all_items[1])
+            items.append(all_items[1:])
+
     contig_id = items[0]
     contig_len = int(items[-1])
 
