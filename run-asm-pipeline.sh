@@ -828,7 +828,7 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 
 	# prep for merging and finalizing
 	#awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.rawchrom.cprops ${orig_fasta} > ${genomeid}.rawchrom.fasta
-	python3 ${pipeline}/edit/edit-fasta-according-to-new-cprops.py ${genomeid}.final.cprops ${orig_fasta} > ${genomeid}.final.fasta
+	python3 ${pipeline}/edit/edit-fasta-according-to-new-cprops.py ${genomeid}.final.cprops ${orig_fasta} | seqkit seq -w 80 > ${genomeid}.final.fasta
 	
 	if [ $diploid == "false" ]; then
 		ln -sf ${genomeid}.rawchrom.cprops ${genomeid}.final.cprops
