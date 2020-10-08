@@ -43,12 +43,13 @@ function abs(value)
 			}
 			counter += 1
 			asm[counter] = abs(a[i])
-			if ( abs(a[i]) in globalpos )
+			if (!ignore_checks && ( abs(a[i]) in globalpos ))
 			{
 				print ":( Assembly file contains multiple entries of the same contig. Exiting!" > "/dev/stderr"
 				exit 1
 			}
-			globalpos[abs(a[i])] = pos
+			if(!(abs(a[i]) in globalpos)) 	#behaves differently only in ignore_checks
+				globalpos[abs(a[i])] = pos
 			if (abs(a[i])!=a[i])
 			{	
 				orientation[abs(a[i])] = 16
@@ -88,7 +89,8 @@ FNR==1{print; next}
 	
 		if ( i > counter)
 		{
-			print ":( Annotations are our of range covered by suggested contigs. Exiting!" > "/dev/stderr"
+			print ":( Annotations are out of range covered by suggested contigs. Exiting!" > "/dev/stderr"
+			print $0 > "/dev/stderr"
 			exit 1
 		#next
 		}
