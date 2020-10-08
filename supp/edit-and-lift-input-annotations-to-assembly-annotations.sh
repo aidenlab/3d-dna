@@ -35,7 +35,7 @@ annotations=$2
 bundled_assembly=${assembly}
 
 if [ ! -z ${bundle_size} ]; then
-	awk -v input_size=${bundle_size} -f ${pipeline}/utils/bundle-unattempted.awk ${assembly}
+	awk -v input_size=${bundle_size} -f ${pipeline}/utils/alternative-bundle-unattempted.awk ${assembly}
 	bundled_assembly=`basename ${assembly} .assembly`".bundled.assembly"
 fi
 
