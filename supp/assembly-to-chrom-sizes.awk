@@ -8,5 +8,5 @@ $0~/^>/{
 	gsub("-","")
 	c=0
 	for(i=1;i<=NF;i++){c+=len[$i]}
-	print counter, c
+	print "HiC_scaffold_"counter, c
 }
