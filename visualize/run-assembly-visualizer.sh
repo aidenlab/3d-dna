@@ -85,7 +85,7 @@ case $opt in
 		fi		
 	;;
 	i)  ignore_mapq_suffix=true;
-		echo ":) -i flag was triggered, building mapq without" >&1
+		echo ":) -i flag was triggered, ignoring mapq suffix in the name of the final file." >&1
 	;;
 	n)  skip_norm=true
 		echo ":) -n flag was triggered, building maps without normalization" >&1
