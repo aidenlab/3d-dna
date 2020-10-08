@@ -44,7 +44,7 @@ DESCRIPTION:
 This is a script to assemble draft assemblies (represented in input by draft fasta and deduplicated list of alignments of Hi-C reads to this fasta as produced by the Juicer pipeline) into chromosome-length scaffolds. The script will produce an output fasta file, a Hi-C map of the final assembly, and a few supplementary annotation files to help review the result in Juicebox.
 
 ARGUMENTS:
-path_to_input_fasta			Specify file path to draft assembly fasta file.
+path_to_input_vcf			Specify file path to vcf file with unphased or partially phased SNPs.
 path_to_input_mnd			Specify path to deduplicated list of alignments of Hi-C reads to the draft assembly fasta as produced by the Juicer pipeline: the merged_nodups file (mnd).
 
 OPTIONS:
