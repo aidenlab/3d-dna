@@ -134,11 +134,11 @@ case $type in
 		echo ">hic_gap_${gap_id}" >> temp.fasta
 		awk -v gap_size=${gap_size} 'BEGIN{for(i=1; i<=gap_size;i++){str=str"N"}; print str}' >> temp.fasta
 
-		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > ${label}.FINAL.fasta
+		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > ${label}_HiC.fasta
 		
 		# clean up: remove no_overhangs files
 		
-		awk -v disable_checks=1 -f ${pipeline}/utils/convert-cprops-and-asm-to-assembly.awk temp.cprops temp.asm && mv temp.assembly ${label}.FINAL.assembly
+		awk -v disable_checks=1 -f ${pipeline}/utils/convert-cprops-and-asm-to-assembly.awk temp.cprops temp.asm && mv temp.assembly ${label}_HiC.assembly
 		rm temp.cprops temp.asm temp.fasta ${cprops} ${asm} ${fasta}
 		
 		exit 
@@ -171,9 +171,9 @@ case $type in
 	
 		# merge final output
 		
-		cat chr-length.fasta small.fasta | awk -v label=${label} '$0~/>/{counter++; $0=">"label"_hic_scaffold_"counter}1' > ${label}.FINAL.from_input.fasta
+		cat chr-length.fasta small.fasta | awk -v label=${label} '$0~/>/{counter++; $0=">"label"_hic_scaffold_"counter}1' > ${label}_HiC.from_input.fasta
 		
-		cat chr-length.fasta small.fasta tiny.fasta | awk -v label=${label} '$0~/>/{counter++; $0=">"label"_hic_scaffold_"counter}1' > ${label}.FINAL.from_draft.fasta
+		cat chr-length.fasta small.fasta tiny.fasta | awk -v label=${label} '$0~/>/{counter++; $0=">"label"_hic_scaffold_"counter}1' > ${label}_HiC.from_draft.fasta
 		
 		cat small.fasta tiny.fasta > small-and-tiny.fasta
 	
