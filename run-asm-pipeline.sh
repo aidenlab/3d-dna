@@ -146,9 +146,8 @@ ADDITIONAL OPTIONS:
 			Option to pick up processing assuming the first round of scaffolding is done. In conjunction with --early-exit this option is to help tune the parameters for best performance.
 --sort-output
 			Option to sort the chromosome-length scaffolds by size, in the descending order.
---build-gapped-map
-			Option to output an additional contact map corresponding to the assembly after the gaps have been added between scaffolded sequences.
-
+-c|--chromosome-map chromosome_count
+			Option to build a standard sandboxed hic file for the first chromosome_count Hi-C scaffolds 
 *****************************************************
 "
 
@@ -202,7 +201,6 @@ stage=""	# by default run full pipeline
 early=false
 fast=false
 sort_output=false
-build_gapped_map=false
 
 ############### HANDLE OPTIONS ###############
 
@@ -547,10 +545,17 @@ while :; do
 			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
 			sort_output=true
 		;;
-		--build-gapped-map)
-			echo " --build-gapped-map was triggered, will build an additional hic file corresponding to final assembly with gaps added between draft sequences." >&1
-			build_gapped_map=true
-		;;
+        -c|--chromosome-map) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+					echo " --chromosome-map flag was triggered, will build an additional standard hic file corresponding to _HiC.assembly." >&1
+					chromosome_count=$OPTARG
+			else
+					echo ":( Wrong syntax for chromosome count parameter value. Exiting!" >&2
+					exit 1
+			fi
+			shift
+                ;;
 # TODO: merger, sealer, etc options              
 		--) # End of all options
 			shift
@@ -670,6 +675,8 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
             ln -sf ${orig_mnd} ${genomeid}.mnd.${ROUND}.txt
         fi
 	else
+        ln -sf ${orig_mnd} ${genomeid}.mnd.${ROUND}.txt
+
 		[ ! -f ${genomeid}.0.cprops ] || [ ! -f ${genomeid}.0.asm ] || [ ! -f ${genomeid}.0.hic ] || [ ! -f ${genomeid}.mnd.0.txt ] || [ ! -f ${genomeid}.0_asm.scaffold_track.txt ] || [ ! -f ${genomeid}.0_asm.superscaf_track.txt ] && echo >&2 ":( No early exit files are found. Please rerun the pipeline to include the round 0 assembly. Exiting!" && exit 1
 	fi
 
@@ -890,10 +897,7 @@ echo "###############" >&1
 echo "Finilizing output:" >&1
 bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
 
-# if requested build HiC map with added gaps
-if [ "$build_gapped_map" == "true" ]; then
-	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.FINAL.assembly
-	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.FINAL.cprops ${orig_mnd} > ${genomeid}.FINAL.mnd.txt
-	bash ${pipeline}/visualize/run-assembly-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.FINAL.assembly ${genomeid}.FINAL.mnd.txt
-	rm ${genomeid}.FINAL.mnd.txt ${genomeid}.FINAL.cprops ${genomeid}.FINAL.asm
+# if requested build _HiC.hic
+if [ ! -z ${chromosome_count} ]; then
+	bash ${pipeline}/visualize/build-sandboxed-hic.sh -c ${chromosome_count} ${genomeid}_HiC.assembly ${genomeid}.mnd.txt
 fi
