@@ -97,5 +97,4 @@ END{
         printf("\t\t\"numberOfScaffolds\": \"%'d\",\n", s)
         printf("\t\t\"scaffoldN50\": \"%'d\",\n", N50)
         printf("\t\t\"longestScaffold\": \"%'d\",\n", slength[s])
-
 }
