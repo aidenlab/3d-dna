@@ -96,6 +96,12 @@ function abs(value)
 	}
 
 	# use unscaled coordinates, 1-based
+	
+	if($9==""){$9=$2}
+	if($10==""){$10=$3}
+	if($11==""){$11=$5}
+	if($12==""){$12=$6}	
+
 	$2=$9+1
 	$3=$10
 
