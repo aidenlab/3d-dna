@@ -18,13 +18,14 @@ narrow_bin=1000
 
 ## Set unprompted defaults
 use_parallel=true		# use GNU Parallel to speed-up calculations (default)
+mapq=1				# minimal mapping quality
 k=55					# sensitivity to depletion score (50% of expected is labeled as a mismatch)
 pct=5					# default percent of map to saturate
 norm="KR"				# use an unbalanced contact matrix for analysis
 
 ## HANDLE OPTIONS
 
-while getopts "hs:j:a:b:w:n:d:k:c:b:p:" opt; do
+while getopts "hs:j:a:b:w:n:d:k:c:b:p:q:" opt; do
 case $opt in
     h) echo "$USAGE" >&1
         exit 0
@@ -35,6 +36,14 @@ case $opt in
     	else
     		echo ":( Unrecognized value for -p flag. Running with default parameters (-p true)." >&2
     	fi
+    ;;
+    q)  re='^[0-9]+$'
+        if [[ $OPTARG =~ $re ]]; then
+            echo ":) -q flag was triggered, performing polishing taking into account signal with minimum $OPTARG mapping quality" >&1
+            mapq=$OPTARG
+        else
+            echo ":( Wrong syntax for mapping quality size. Using the default value $mapq" >&2
+        fi
     ;;
     s)  re='^[0-9]+$'
         if [[ $OPTARG =~ $re ]]; then
@@ -159,7 +168,7 @@ if [ -z ${current_hic} ] || [ -z ${current_scaf} ] || [ -z ${current_superscaf} 
 	## TODO: check w/o parallel
 	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${current_cprops} ${orig_mnd} > `basename ${current_cprops} .cprops`.mnd.txt
 	current_mnd=`basename ${current_cprops} .cprops`.mnd.txt
-	bash ${pipeline}/visualize/run-asm-visualizer.sh ${current_cprops} ${current_asm} ${current_mnd}
+	bash ${pipeline}/visualize/run-asm-visualizer.sh -q ${mapq} -i -c ${current_cprops} ${current_asm} ${current_mnd}
 	current_hic=`basename ${current_asm} .asm`.hic
 	current_scaf=`basename ${current_asm} .asm`_asm.scaffold_track.txt
 	current_superscaf=`basename ${current_asm} .asm`_asm.superscaf_track.txt
@@ -214,18 +223,18 @@ awk -v bin_size=${narrow_bin} -f ${pipeline}/edit/overlay-edits.awk ${current_sc
 mv h.dropouts.step.0.txt do_not_delete.dropouts.step.0.txt
 
 #	6) Run TIGer
-	bash ${pipeline}/scaffold/run-tiger-scaffolder.sh -p ${use_parallel} -s ${input_size} ${polish_cprops} ${polish_mnd}
+	bash ${pipeline}/scaffold/run-tiger-scaffolder.sh -p ${use_parallel} -q ${mapq} -s ${input_size} ${polish_cprops} ${polish_mnd}
 	polish_asm=`basename ${polish_cprops} .cprops`.asm
 
 mv do_not_delete.dropouts.step.0.txt h.dropouts.step.0.txt
 mv ${polish_asm} h.scaffolds.original.notation.step.0.txt
 
 #	6) Run LIGer (for things TIGer was not able to join - not necessary, but for megascaffold consistency)
-	bash ${pipeline}/scaffold/run-liger-scaffolder.sh -p ${use_parallel} -s ${input_size} ${polish_cprops} ${polish_mnd}
+	bash ${pipeline}/scaffold/run-liger-scaffolder.sh -p ${use_parallel} -q ${mapq} -s ${input_size} ${polish_cprops} ${polish_mnd}
 	polish_asm=`basename ${polish_cprops} .cprops`.asm
 
 #	7) Visualize output
-	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${use_parallel} ${polish_cprops} ${polish_asm} ${polish_mnd}
+	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${use_parallel} -q ${mapq} -i -c ${polish_cprops} ${polish_asm} ${polish_mnd}
 	
 #	8) Cleanup
-	rm ${polish_mnd} temp_resolved.asm temp_unresolved.asm temp.pre_polish_edits.txt temp.post_polish_edits.txt new_resolved.asm new_unresolved.asm temp.${id}.${STEP}.asm_mnd.txt
+	rm ${polish_mnd} temp_resolved.asm temp_unresolved.asm temp.pre_polish_edits.txt temp.post_polish_edits.txt new_resolved.asm new_unresolved.asm

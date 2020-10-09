@@ -42,11 +42,20 @@ path_to_input_fasta			Specify file path to draft assembly fasta file.
 path_to_input_mnd			Specify path to deduplicated list of alignments of Hi-C reads to the draft assembly fasta as produced by the Juicer pipeline: the merged_nodups file (mnd).
 
 OPTIONS:
--r|--review			Path to review \".assembly\" file.
---sort-output			Sorts output scaffolds by size (prior to adding gaps), default is false.
--i|--input input_size			Specifies threshold input contig/scaffold size (default is 15000). Contigs/scaffolds smaller than input_size are going to be ignored. Only matters if running including seal. Should be the same as used for running the original script.
--s|--stage stage			Assembly steps to run on top of the reviewed assembly, can be seal and finalize. Default is finalize.
--q|--mapq mapq			Mapq threshold for final map visualization, default is 1.
+-r|--review path_to_review_assembly
+			Path to review \".assembly\" file.
+-i|--input input_size
+			Specifies threshold input contig/scaffold size (default is 15000). Contigs/scaffolds smaller than input_size are going to be ignored. Only matters if running including seal. Should be the same as used for running the original script.
+-s|--stage stage
+			Assembly steps to run on top of the reviewed assembly, can be seal and finalize. Default is finalize.
+-q|--mapq mapq
+			Mapq threshold for final map(s) visualization, default is 1.
+-g|--gap_size gap_size
+			Gap size to be added between scaffolded sequences in the final chromosome-length scaffolds (default is 500).	
+--sort-output
+			Option to sort the chromosome-length scaffolds by size, in the descending order.
+--build-gapped-map
+			Option to output an additional contact map corresponding to the assembly after the gaps have been added between scaffolded sequences.
 -h|--help			Shows this help. Type --help for a full set of options.
 
 *****************************************************
@@ -56,9 +65,11 @@ pipeline=`cd "$( dirname $0)" && pwd`
 ## default parameter setup
 
 input_size=15000 # contigs/scaffolds smaller than input_size are ignored
-mapq=1	# read mapping quality threshold for Hi-C scaffolder
+mapq=1	# default read mapping quality threshold for Hi-C scaffolder
+gap_size=500	# default length of gaps to be added between scaffolded sequences in the chrom-length scaffolds
 stage="finalize"	# by default run only final  pipeline
 sort_output=false
+build_gapped_map=false
 
 ############### HANDLE OPTIONS ###############
 
@@ -97,7 +108,7 @@ while :; do
 			fi
         	shift
         ;;
-        -q|--mapq) OPTARG=$2 ##TODO: check that propagates consistently, not tested sufficiently
+        -q|--mapq) OPTARG=$2
 			re='^[0-9]+$'
 			if [[ $OPTARG =~ $re ]]; then
 				echo " -q|--mapq flag was triggered, scaffolding using reads with at least $OPTARG mapping quality." >&1
@@ -107,10 +118,24 @@ while :; do
 			fi
         	shift
         ;;
+        -g|--gap-size) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " -g|--gap-size flag was triggered, will add gaps of size $OPTARG between scaffolded sequences in the chromosome-length scaffolds." >&1
+				gap_size=$OPTARG
+			else
+				echo ":( Wrong syntax for gap size parameter value. Using the default value ${gap_size}." >&2
+			fi
+        	shift 
+		;;
 ## long menu options
 		--sort-output)
 			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
 			sort_output=true
+		;;
+		--build-gapped-map)
+			echo " --build-gapped-map was triggered, will build an additional hic file corresponding to final assembly with gaps added between draft sequences." >&1
+			build_gapped_map=true
 		;;
 		--) # End of all options
 			shift
@@ -194,11 +219,13 @@ if [ "$stage" != "finalize" ]; then
 
 
 	awk -v cprops=${genomeid}.split.cprops -v asm=${genomeid}.split.asm '$1~/^>/{$1=substr($1,2); print > cprops;next}{print > asm}' ${review_assembly}	
-
-	if [ "$sort_output" == "true" ]; then
-		bash ${pipeline}/run-asm-pipeline.sh -s seal -i ${input_size} --sort-output ${orig_fasta} ${orig_mnd}
+	add_options=""
+	[ "$sort_output" == "true" ] && add_options="--sort-output"
+	[ "$build_gapped_map" == "true" ] && add_tions=${add_options}" --build-gapped-map"
+	if [ "$add_options" != "" ]; then
+		bash ${pipeline}/run-asm-pipeline.sh -s seal -i ${input_size} -g ${gap_size} ${add_options} ${orig_fasta} ${orig_mnd}
 	else
-		bash ${pipeline}/run-asm-pipeline.sh -s seal -i ${input_size} ${orig_fasta} ${orig_mnd}
+		bash ${pipeline}/run-asm-pipeline.sh -s seal -i ${input_size} -g ${gap_size} ${orig_fasta} ${orig_mnd}
 	fi
 	
 else
@@ -216,10 +243,18 @@ else
 
 	# build final map
 	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.final.cprops ${orig_mnd} > ${genomeid}.final.mnd.txt
-	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.mnd.txt
-	rm ${genomeid}.final.mnd.txt temp.${genomeid}.final.asm_mnd.txt
+	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.mnd.txt
+	rm ${genomeid}.final.mnd.txt
 
 	# build final fasta
 	awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.final.cprops ${orig_fasta} > ${genomeid}.final.fasta
-	bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final	
+	bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
+
+	# if requested build HiC map with added gaps
+	if [ "$build_gapped_map" == "true" ]; then
+		awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.FINAL.assembly
+		bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.FINAL.cprops ${orig_mnd} > ${genomeid}.FINAL.mnd.txt
+		bash ${pipeline}/visualize/run-assembly-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.FINAL.assembly ${genomeid}.FINAL.mnd.txt
+		rm ${genomeid}.FINAL.mnd.txt ${genomeid}.FINAL.cprops ${genomeid}.FINAL.asm
+	fi
 fi

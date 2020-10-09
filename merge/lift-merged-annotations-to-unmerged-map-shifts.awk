@@ -1,12 +1,12 @@
 ## Generate an annotation track for merged sequences. Only called if unmerged annotations are passed to wrapper script.
-## Color scheme adopted: white for secondary contigs; red for primary contigs wo upstream overlap; green for primary contigs with upstream overlap
+## Color scheme adopted: white for secondary contigs; red for primary contigs wo upstream overlap; yellow for primary contigs with upstream overlap
 ## Written by: OD
 BEGIN{
 	FS="\t"
 	OFS="\t"
-	cc_intra="255,255,255"
-	cc_break="255,0,0"
-	cc_overlap="0,255,0"
+        cc_intra="255,255,255"
+        cc_break="255,0,0"
+        cc_overlap="255,255,0"
 }
 # read in tiled annotation file
 {

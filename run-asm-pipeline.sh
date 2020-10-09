@@ -23,10 +23,14 @@
 # THE SOFTWARE.
 ##########
 #
-# 3D DNA de novo genome assembly pipeline: 180114 version.
+# 3D-DNA de novo genome assembly pipeline.
 #
 
+version=180922
+
 echo `readlink -f $0`" "$*
+
+echo "version: "${version}
 
 #set -x
 
@@ -78,33 +82,72 @@ ADDITIONAL OPTIONS:
 -q|--mapq mapq					Mapq threshold for scaffolding and visualization (default is 1).
 
 **misjoin detector**
---editor-coarse-resolution editor_coarse_resolution				Misjoin editor coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
---editor-coarse-region editor_coarse_region			Misjoin editor triangular motif region size (default is 125000).
---editor-coarse-stringency editor_coarse_stringency				Misjoin editor stringency parameter (default is 55).
---editor-saturation-centile editor_saturation_centile				Misjoin editor saturation parameter (default is 5).
---editor-fine-resolution editor_fine_resiolution				Misjoin editor fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
---editor-repeat-coverage editor_repeat_coverage			Misjoin editor threshold repeat coverage (default is 2). 
+--editor-coarse-resolution editor_coarse_resolution
+			Misjoin editor coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
+--editor-coarse-region editor_coarse_region
+			Misjoin editor triangular motif region size (default is 125000).
+--editor-coarse-stringency editor_coarse_stringency
+			Misjoin editor stringency parameter (default is 55).
+--editor-saturation-centile editor_saturation_centile
+			Misjoin editor saturation parameter (default is 5).
+--editor-fine-resolution editor_fine_resiolution
+			Misjoin editor fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
+--editor-repeat-coverage editor_repeat_coverage
+			Misjoin editor threshold repeat coverage (default is 2). 
 
 **polisher**
---polisher-input-size polisher_input_size			Polisher input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (default is 1000000).
---polisher-coarse-resolution editor_coarse_resolution				Polisher coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
---polisher-coarse-region editor_coarse_region			Polisher  triangular motif region size (default is 3000000).
---polisher-coarse-stringency editor_coarse_stringency				Polisher stringency parameter (default is 55).
---polisher-saturation-centile editor_saturation_centile				Polisher saturation parameter (default is 5).
---polisher-fine-resolution editor_fine_resiolution				Polisher fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
+--polisher-input-size polisher_input_size
+			Polisher input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (default is 1000000).
+--polisher-coarse-resolution editor_coarse_resolution
+			Polisher coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
+--polisher-coarse-region editor_coarse_region
+			Polisher  triangular motif region size (default is 3000000).
+--polisher-coarse-stringency editor_coarse_stringency
+			Polisher stringency parameter (default is 55).
+--polisher-saturation-centile editor_saturation_centile
+			Polisher saturation parameter (default is 5).
+--polisher-fine-resolution editor_fine_resiolution
+			Polisher fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
 
 **splitter**
---splitter-input-size polisher_input_size			Splitter input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (default is 1000000).
---splitter-coarse-resolution editor_coarse_resolution				Splitter coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 25000).
---splitter-coarse-region editor_coarse_region			Splitter  triangular motif region size (default is 3000000).
---splitter-coarse-stringency editor_coarse_stringency				Splitter stringency parameter (default is 55).
---splitter-saturation-centile editor_saturation_centile				Splitter saturation parameter (default is 5).
---splitter-fine-resolution editor_fine_resiolution				Splitter fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (default is 1000).
+--splitter-input-size splitter_input_size
+			Splitter input size threshold. Scaffolds smaller than polisher_input_size are going to be placed into unresolved (Default: 1000000).
+--splitter-coarse-resolution splitter_coarse_resolution
+			Splitter coarse matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (Default: 25000).
+--splitter-coarse-region splitter_coarse_region
+			Splitter  triangular motif region size (Default: 3000000).
+--splitter-coarse-stringency splitter_coarse_stringency
+			Splitter stringency parameter (Default: 55).
+--splitter-saturation-centile splitter_saturation_centile
+			Splitter saturation parameter (Default: 5).
+--splitter-fine-resolution splitter_fine_resiolution
+			Splitter fine matrix resolution, should be one of the following: 2500000, 1000000, 500000, 250000, 100000, 50000, 25000, 10000, 5000, 1000 (Default: 1000).
 
-**merger** TODO: CURRENTLY HARDCODED
--b band_size				Band size for alternative haplotype detection (default is 1000000 or 1Mb).
--l lastz_opt_string			LASTZ aligner option string (default is XXX).
--i identity					XXX
+**merger**
+--merger-search-band merger_search_band		
+			Distance (in bp) within which to locally search for alternative haplotypes to a given contig or scaffold, from the position of their suggested incorporation in the assembly. The larger the original input contigs/scaffolds, the larger band size it might be necessary to set. Default: 3000000.
+--merger-alignment-score merger_alignment_score
+			Minimal LASTZ alignment score for nearby sequences (located in the assembly within the distance defined by the merger_search_band parameter) to be recongnized as alternative haplotypes. Default: 50000000.
+--merger-alignment-identity merger_alignment_identity
+			Minimal identity score required from similar nearby sequences (per length) for them to be classified as alternative haplotypes. Default: 20.
+--merger-alignment-length	merger_alignment_length
+			Minimal length necessary to recognize similar nearby sequences as alternative haplotypes. Default: 20000.
+--merger-lastz-options	merger_lastz_options
+			Option string to customize LASTZ alignment. Default: \"--gfextend\ --gapped\ --chain=200,200\"		
+
+**finalizer**
+-g|--gap-size gap_size
+			Gap size to be added between scaffolded sequences in the final chromosome-length scaffolds (default is 500).
+
+**supplementary**
+-e|--early-exit
+			Option to exit after first round of scaffolding.
+-f|--fast-start
+			Option to pick up processing assuming the first round of scaffolding is done. In conjunction with --early-exit this option is to help tune the parameters for best performance.
+--sort-output
+			Option to sort the chromosome-length scaffolds by size, in the descending order.
+--build-gapped-map
+			Option to output an additional contact map corresponding to the assembly after the gaps have been added between scaffolded sequences.
 
 *****************************************************
 "
@@ -117,7 +160,7 @@ diploid="false"	# by default run haploid pipeline
 input_size=15000 # contigs/scaffolds smaller than input_size are ignored
 MAX_ROUNDS=2	# use 2 for Hs2 and 9 for AaegL4
 
-mapq=1	# read mapping quality threshold for Hi-C scaffolder
+mapq=1	# default read mapping quality threshold for Hi-C scaffolder
 
 # misassembly detector and editor default params
 editor_coarse_resolution=25000	
@@ -143,14 +186,22 @@ splitter_coarse_region=3000000
 splitter_coarse_stringency=55
 splitter_saturation_centile=5
 
-# merge default params
-band_size=1000000
+# merger default params after option handling
+default_merger_search_band=3000000
+default_merger_alignment_score=50000000
+default_merger_alignment_identity=20
+default_merger_alignment_length=20000
+default_merger_lastz_options=\"--gfextend\ --gapped\ --chain=200,200\"
 
+# finalizer default params
+gap_size=500	# default length of gaps to be added between scaffolded sequences in the chrom-length scaffolds
 
+# supplementary options
 stage=""	# by default run full pipeline
 early=false
 fast=false
 sort_output=false
+build_gapped_map=false
 
 ############### HANDLE OPTIONS ###############
 
@@ -165,12 +216,15 @@ while :; do
 			exit 0
         ;;
 
-## short menu options
+## SHORT MENU OPTIONS
 		-m|--mode) OPTARG=$2
 			if [ "$OPTARG" == "haploid" ] || [ "$OPTARG" == "diploid" ]; then
 				echo >&1 " -m|--mode flag was triggered. Running in $OPTARG mode."
 			else
 				echo ":( Unrecognized value for mode flag. Running with default parameters (--mode haploid)." >&2
+			fi
+			if [ "$OPTARG" == "diploid" ]; then
+				diploid="true"
 			fi
 			shift
     	;;
@@ -194,23 +248,6 @@ while :; do
 			fi
         	shift
         ;;
-        -s|--stage) OPTARG=$2
-			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "merge" ] || [ "$OPTARG" == "finalize" ]; then
-			echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
-			stage=$OPTARG
-			else
-				echo ":( Wrong syntax for pipeline stage. Exiting!" >&2
-			fi
-        	shift
-        ;;
-		-e|--early-exit)
-			echo " -e|--early-exit flag was triggered, will do early exit." >&1
-			early=true
-		;;
-		-f|--fast-start)
-			echo " -f|--fast-start flag was triggered, will start assuming first iterative round and map are available." >&1
-			fast=true
-		;;
 # scaffolder
         -q|--mapq) OPTARG=$2 ##TODO: check that propagates consistently, not tested sufficiently
 			re='^[0-9]+$'
@@ -222,11 +259,18 @@ while :; do
 			fi
         	shift
         ;;
-## long menu options
-		--sort-output)
-			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
-			sort_output=true
-		;;
+# organizational
+		-s|--stage) OPTARG=$2
+			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "merge" ] || [ "$OPTARG" == "finalize" ]; then
+			echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
+			stage=$OPTARG
+			else
+				echo ":( Wrong syntax for pipeline stage. Exiting!" >&2
+			fi
+        	shift
+        ;;
+        
+## LONG MENU OPTIONS
 # misjoin editor
         --editor-saturation-centile) OPTARG=$2
 			re='^[0-9]+\.?[0-9]*$'
@@ -411,6 +455,92 @@ while :; do
 			fi
         	shift
         ;;
+        
+# merger
+        --merger-search-band) OPTARG=$2
+        	re='^[0-9]+$'	## TODO: specify/generalize re matrix resolutions size
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-search-band flag was triggered, merger will look for alternative haplotypes to input contigs and scaffolds within $OPTARG bases from their suggested location in the assembly." >&1
+				merger_search_band=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search region size. Exiting!" >&2
+				exit
+			fi
+        	shift
+        ;;
+        --merger-alignment-length) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-alignment-length flag was triggered, overlap length threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+				merger_alignment_length=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search alignment length. Exiting!" >&2
+				exit 1
+			fi
+        	shift
+        ;;
+        --merger-alignment-identity) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-alignment-identity flag was triggered, lastz alignment identity threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+				merger_alignment_identity=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search alignment identity. Exiting!" >&2
+				exit 1
+			fi
+        	shift
+        ;;     
+        --merger-alignment-score) OPTARG=$2
+        	re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " --merger-alignment-score flag was triggered, lastz alignment score threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+				merger_alignment_score=$OPTARG
+			else
+				echo ":( Wrong syntax for alternative haplotype search alignment score. Exiting!" >&2
+				exit
+			fi
+        	shift
+        ;;
+        --merger-lastz-options) OPTARG=$2
+        	re='^\"--.+\"$'
+        	if [[ $OPTARG =~ $re ]]; then
+        		echo " --merger-lastz-options flag was triggered, overlap length threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
+        		merger_lastz_options="$OPTARG"
+			else
+				echo ":( Wrong syntax for alternative haplotype search lastz option string. Exiting!" >&2
+				exit 1
+			fi
+        	shift
+        ;;
+        
+# finalizer        
+		-g|--gap-size) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+				echo " -g|--gap-size flag was triggered, will add gaps of size $OPTARG between scaffolded sequences in the chromosome-length scaffolds." >&1
+				gap_size=$OPTARG
+			else
+				echo ":( Wrong syntax for gap size parameter value. Using the default value ${gap_size}." >&2
+			fi
+        	shift 
+		;;
+# supplementary options:
+		-e|--early-exit)
+			echo " -e|--early-exit flag was triggered, will do early exit." >&1
+			early=true
+		;;
+		-f|--fast-start)
+			echo " -f|--fast-start flag was triggered, will start assuming first iterative round and map are available." >&1
+			fast=true
+		;;
+		--sort-output)
+			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
+			sort_output=true
+		;;
+		--build-gapped-map)
+			echo " --build-gapped-map was triggered, will build an additional hic file corresponding to final assembly with gaps added between draft sequences." >&1
+			build_gapped_map=true
+		;;
 # TODO: merger, sealer, etc options              
 		--) # End of all options
 			shift
@@ -435,6 +565,16 @@ done
 [[ ${splitter_coarse_region} -le ${splitter_coarse_resolution} ]] && echo >&2 ":( Requested depletion region size ${splitter_coarse_region} and bin size ${splitter_coarse_resolution} parameters for splitter are incompatible. Run ${pipeline}/edit/run-mismatch-detector.sh -h for instructions. Exiting!" && exit 1
 [[ ${splitter_coarse_resolution} -le ${splitter_fine_resolution} ]] && echo >&2 ":( Requested mismatch localization resolution ${splitter_fine_resolution} and coarse search bin size ${splitter_coarse_resolution} parameters for splitter are incompatible. Run ${pipeline}/edit/run-mismatch-detector.sh -h for instructions. Exiting!" && exit 1
 
+([[ $diploid == "false" ]] && [[ ! -z ${merger_band_width} || ! -z ${merger_alignment_score} || ! -z ${merger_alignment_identity} || ! -z ${merger_alignment_length} || ! -z ${merger_lastz_options} || $stage == "merge" ]]) && echo >&2 ":( Some options were requested that are not compatible with default haploid mode. Please include --mode diploid in your option list or remove flag calls associated with the merge block of the pipeline. Exiting!" && exit 1
+
+## set merger default parameters if missing any
+if [[ $diploid == "true" ]]; then
+	[[ -z ${merger_search_band} ]] && merger_search_band=${default_merger_search_band}
+	[[ -z ${merger_alignment_score} ]] && merger_alignment_score=${default_merger_alignment_score}
+	[[ -z ${merger_alignment_identity} ]] && merger_alignment_identity=${default_merger_alignment_identity}
+	[[ -z ${merger_alignment_length} ]] && merger_alignment_length=${default_merger_alignment_length}
+	[[ -z ${merger_lastz_options} ]] && merger_lastz_options=${default_merger_lastz_options}
+fi
 
 ############### HANDLE EXTERNAL DEPENDENCIES ###############
 
@@ -539,9 +679,9 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
             
         # build a hic map of the resulting assembly
             echo "...visualizing round ${ROUND} results:" >&1
-            bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i ${current_cprops} ${genomeid}.${ROUND}.asm ${current_mnd}
-            rm temp.${genomeid}.${ROUND}.asm_mnd.txt
-
+            bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${current_cprops} ${genomeid}.${ROUND}.asm ${current_mnd}
+#            rm temp.${genomeid}.${ROUND}.asm_mnd.txt
+			rm ${current_mnd}
         # early exit on round zero if requested
             [ "$early" == "true" ] && exit 0
 		fi
@@ -605,7 +745,7 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
 	ln -sf ${genomeid}.${ROUND}_asm.scaffold_track.txt ${genomeid}.resolved_asm.scaffold_track.txt
 	ln -sf ${genomeid}.${ROUND}_asm.superscaf_track.txt ${genomeid}.resolved_asm.superscaf_track.txt
 	ln -sf ${genomeid}.${ROUND}.hic ${genomeid}.resolved.hic
-	ln -sf ${genomeid}.mnd.${ROUND}.txt ${genomeid}.mnd.resolved.txt
+	#ln -sf ${genomeid}.mnd.${ROUND}.txt ${genomeid}.mnd.resolved.txt
 
 fi
 
@@ -614,12 +754,12 @@ fi
 
 if [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 
-	[ ! -f ${genomeid}.resolved.cprops ] || [ ! -f ${genomeid}.resolved.asm ] || [ ! -f ${genomeid}.resolved.hic ] || [ ! -f ${genomeid}.mnd.resolved.txt ] && echo >&2 ":( No resolved files are found. Please rerun the pipeline to include the scaffold segment. Exiting!" && exit 1
+	[ ! -f ${genomeid}.resolved.cprops ] || [ ! -f ${genomeid}.resolved.asm ] || [ ! -f ${genomeid}.resolved.hic ] && echo >&2 ":( No resolved files are found. Please rerun the pipeline to include the scaffold segment. Exiting!" && exit 1
 
 	echo "###############" >&1
 	echo "Starting polish:" >&1
 	
-	bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
+bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -q ${mapq} -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
 	
 	mv ${genomeid}.resolved.polish.cprops ${genomeid}.polished.cprops
 	mv ${genomeid}.resolved.polish.asm ${genomeid}.polished.asm
@@ -648,7 +788,7 @@ if [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize"
 
 	echo "###############" >&1
 	echo "Starting split:" >&1
-	bash ${pipeline}/split/run-asm-splitter.sh -p ${parallel} -j ${genomeid}.polished.hic -a ${genomeid}.polished_asm.scaffold_track.txt -b ${genomeid}.polished_asm.superscaf_track.txt -s ${splitter_input_size} -c ${splitter_saturation_centile} -w ${splitter_coarse_resolution} -d ${splitter_coarse_region} -k ${splitter_coarse_stringency} -n ${splitter_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.polished.cprops ${genomeid}.polished.asm
+	bash ${pipeline}/split/run-asm-splitter.sh -p ${parallel} -q ${mapq} -j ${genomeid}.polished.hic -a ${genomeid}.polished_asm.scaffold_track.txt -b ${genomeid}.polished_asm.superscaf_track.txt -s ${splitter_input_size} -c ${splitter_saturation_centile} -w ${splitter_coarse_resolution} -d ${splitter_coarse_region} -k ${splitter_coarse_stringency} -n ${splitter_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.polished.cprops ${genomeid}.polished.asm
 		
 	mv ${genomeid}.polished.split.cprops ${genomeid}.split.cprops
 	mv ${genomeid}.polished.split.asm ${genomeid}.split.asm
@@ -666,11 +806,14 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 	
 	echo "###############" >&1
 	echo "Starting sealing:" >&1
-
-	bash ${pipeline}/seal/seal-asm.sh -s ${input_size} ${genomeid}.split.cprops ${genomeid}.split.asm
-
-	mv ${genomeid}.split.sealed.cprops ${genomeid}.rawchrom.cprops
-	mv ${genomeid}.split.sealed.asm ${genomeid}.rawchrom.asm
+	
+	# start slowly converting to .assembly as main input. If necessary split inside a particular block and cleanup after
+	cat <(awk '{$0=">"$0}1' ${genomeid}.split.cprops) ${genomeid}.split.asm > ${genomeid}.split.assembly
+	
+	bash ${pipeline}/seal/run-assembly-sealer.sh -i ${input_size} ${genomeid}.split.assembly
+	
+	mv ${genomeid}.split.sealed.assembly ${genomeid}.rawchrom.assembly
+	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
 
 	# sort output by scaffold size if requested (except for unattempted which we keep in the end)
 	if [ "$sort_output" == "true" ]; then
@@ -679,9 +822,9 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 
 	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.rawchrom.cprops ${orig_mnd} > ${genomeid}.rawchrom.mnd.txt
 
-	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm ${genomeid}.rawchrom.mnd.txt
+	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm ${genomeid}.rawchrom.mnd.txt
 	
-	rm ${genomeid}.rawchrom.mnd.txt temp.${genomeid}.rawchrom.asm_mnd.txt
+	rm ${genomeid}.rawchrom.mnd.txt
 
 	# prep for merging and finalizing
 	awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.rawchrom.cprops ${orig_fasta} > ${genomeid}.rawchrom.fasta
@@ -690,7 +833,7 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 		ln -sf ${genomeid}.rawchrom.cprops ${genomeid}.final.cprops
 		ln -sf ${genomeid}.rawchrom.asm ${genomeid}.final.asm
 		ln -sf ${genomeid}.rawchrom.fasta ${genomeid}.final.fasta
-		ln -sf ${genomeid}.rawchrom.hic ${genomeid}.rawchrom.hic
+		ln -sf ${genomeid}.rawchrom.hic ${genomeid}.final.hic
 		ln -sf ${genomeid}.rawchrom.assembly ${genomeid}.final.assembly
 	fi
 	
@@ -700,20 +843,30 @@ fi
 
 if [ "$stage" != "finalize" ] && [ $diploid == "true" ]; then
 	
-	[ ! -s ${genomeid}.rawchrom.cprops ] || [ ! -s ${genomeid}.rawchrom.asm ] || [ ! -s ${genomeid}.rawchrom.fasta ] && echo >&2 ":( No raw chromosomal files were found. Please rerun he pipeline to include the seal segment" && exit 1
+	[ ! -s ${genomeid}.rawchrom.assembly ] || [ ! -s ${genomeid}.rawchrom.fasta ] && echo >&2 ":( No raw chromosomal files were found. Please rerun he pipeline to include the seal segment" && exit 1
 	
 	echo "###############" >&1
 	echo "Starting merge:" >&1
 	
+	[[ -f ${genomeid}.rawchrom.cprops || -f ${genomeid}.rawchrom.asm ]] || awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
+	
 ## TODO: split unsafe, redo via indexing as in haploid case
-	[ -d faSplit ] && echo >&2 "faSplit directory exists. Remove faSplit directory and restart with -S merge flag. Exiting!" && exit 1
-	mkdir faSplit && cd faSplit && awk -f ${pipeline}/merge/split-fasta-by-cname.awk ../${genomeid}.rawchrom.cprops ../${genomeid}.rawchrom.fasta && cd ..
+	if [ -d faSplit ]; then
+		echo >&2 ":| WARNING: Using existing faSplit folder for merge. Totally fine if you know what you are doing. If unsure delete the faSplit folder and restart pipeline."
+	else
+		echo "...preparing fasta..." >&1
+		mkdir faSplit && cd faSplit && awk -f ${pipeline}/merge/split-fasta-by-cname.awk ../${genomeid}.rawchrom.cprops ../${genomeid}.rawchrom.fasta && cd ..
+	fi
 
-	bash ${pipeline}/merge/run-asm-merger.sh -b ${band_size} ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm faSplit
+	bash ${pipeline}/merge/run-asm-merger.sh -b ${merger_search_band} -s ${merger_alignment_score} -i ${merger_alignment_identity} -l ${merger_alignment_length} -o "${merger_lastz_options}" ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm faSplit
 
 	cp ${genomeid}.rawchrom/${genomeid}.rawchrom_merged.asm ${genomeid}.final.asm
 	ln -sf ${genomeid}.rawchrom/merged_${genomeid}.rawchrom.fa ${genomeid}.final.fasta
 	awk -f ${pipeline}/utils/generate-cprops-file.awk ${genomeid}.final.fasta > ${genomeid}.final.cprops
+	cat <(awk '{$0=">"$0}1' ${genomeid}.final.cprops) ${genomeid}.final.asm > ${genomeid}.final.assembly
+	
+	# cleanup
+	rm -r faSplit
 fi
 
 ############### FINALIZING ###############
@@ -722,4 +875,12 @@ fi
 
 echo "###############" >&1
 echo "Finilizing output:" >&1
-bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
+bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
+
+# if requested build HiC map with added gaps
+if [ "$build_gapped_map" == "true" ]; then
+	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.FINAL.assembly
+	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.FINAL.cprops ${orig_mnd} > ${genomeid}.FINAL.mnd.txt
+	bash ${pipeline}/visualize/run-assembly-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.FINAL.assembly ${genomeid}.FINAL.mnd.txt
+	rm ${genomeid}.FINAL.mnd.txt ${genomeid}.FINAL.cprops ${genomeid}.FINAL.asm
+fi

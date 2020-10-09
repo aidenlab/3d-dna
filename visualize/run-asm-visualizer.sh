@@ -148,7 +148,7 @@ fi
 
 if [ -z $scale ]; then
 	# calculate necessary zoom
-	totlength=`awk '{total+=$3}END{print total}' ${cprops}`
+        totlength=`awk 'FILENAME==ARGV[1]{len[$2]=$3;len[-$2]=$3;next}{for(i=1;i<=NF;i++){total+=len[$i]}}END{print total}' ${cprops} ${asm}`
 	scale=$(( 1 + $totlength / 2100000000 ))
 fi
 
@@ -181,8 +181,8 @@ awk '{$1=">"$1}1' ${cprops} | cat - ${asm} > ${genomeid}".assembly"
 
 echo "...Building the hic file"
 
-[ $mapq -eq 1 ] && ignore_q_suffix=true ## lab convention to keep mapq 1 wo suffix, otherwise add suffix in case building multiple maps
-[ ${ignore_q_suffix} == "true" ] && mapqsuf="" || mapqsuf="_"${mapq}
+[ $mapq -eq 1 ] && ignore_mapq_suffix=true ## lab convention to keep mapq 1 wo suffix, otherwise add suffix in case building multiple maps
+[ ${ignore_mapq_suffix} == "true" ] && mapqsuf="" || mapqsuf="_"${mapq}
 
 rLen=${#res[@]}
 add_options=$(( res[0]/scale ))

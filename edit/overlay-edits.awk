@@ -24,8 +24,8 @@ BEGIN{
 FILENAME==ARGV[1]{
 	if(FNR==1){next}
 	
-	if(FNR==2){z=int($9/$2)}
-	if(int($10/$3)!=z || z==0)	# should not happen
+	if(FNR==2){z=int($10/$3)}
+	if(($2!=0 && int($9/$2)!=z) || z==0)	# should not happen
 	{
 		print ":( Cannot interpret scaling in the annotation file. Exiting! " > "/dev/stderr"
 		exit
