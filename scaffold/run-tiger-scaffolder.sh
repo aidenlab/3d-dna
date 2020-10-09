@@ -208,13 +208,13 @@ done
 # CONSOLIDATE FINAL OUTPUT
 basenamefile="$(basename $contigPropFile .cprops)"
 cp "h.scaffolds.original.notation.step.""$STEP"".txt" "$basenamefile"".asm"
-for i in $(find . -name 'h.dropouts.step.*.txt' | sort -t "." -nr -k 5); do
+for i in $(find . -maxdepth 1 -name 'h.dropouts.step.*.txt' | sort -t "." -nr -k 5); do
     cat $i >> "$basenamefile"".asm"
 done
 
 
 ## CLEAN LEFTOVER HELPER FILES. TODO: delete some from inside the loop to save space.
-find . -name "h.*.txt" -delete
+find . -maxdepth 1 -name "h.*.txt" -delete
 
 echo ":) DONE!"
 

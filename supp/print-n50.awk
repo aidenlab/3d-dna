@@ -70,13 +70,11 @@ END{
 			N50=clength[i]
 			longerlength+=clength[i]
 	}
-	printf("Total contig length:\t%'d\n", totallength)
-	printf("No of contigs:\t%'d\n", s)
-	printf("contig N50:\t%'d\n", N50)
-	printf("Largest contig:\t%'d\n", clength[s])
+	printf("\t\t\"totalContigLength\": \"%'d\",\n", totallength)
+	printf("\t\t\"numberOfContigs\": \"%'d\",\n", s)
+	printf("\t\t\"contigN50\": \"%'d\",\n", N50)
+	printf("\t\t\"longestContig\": \"%'d\",\n", clength[s])
         
-        
-    print "---------"
         
     # print scaffold stuff
     
@@ -94,9 +92,9 @@ END{
 		N50=slength[i]
 		longerlength+=slength[i]
 	}
-	printf("Total scaffold length:\t%'d\n", totallength)
-	printf("No of scaffolds:\t%'d\n", s)
-	printf("scaffold N50:\t%'d\n", N50)
-	printf("Largest scaffold:\t%'d\n", slength[s])
 
+        printf("\t\t\"totalScaffoldLength\": \"%'d\",\n", totallength)
+        printf("\t\t\"numberOfScaffolds\": \"%'d\",\n", s)
+        printf("\t\t\"scaffoldN50\": \"%'d\",\n", N50)
+        printf("\t\t\"longestScaffold\": \"%'d\",\n", slength[s])
 }
