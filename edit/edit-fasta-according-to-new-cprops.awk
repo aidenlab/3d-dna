@@ -54,7 +54,7 @@ BEGIN{
 			
 		if (current_subcontig_position != len[original_contig_name" "i])
 		{
-			system("echo The length of fasta does not match that suggested by the cprops file. Exiting!")
+			system("echo \":( The length of fasta does not match that suggested by the cprops file. Exiting!\" >&2" )
 			print 
 			exit
 		}

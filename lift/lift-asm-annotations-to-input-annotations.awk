@@ -45,6 +45,7 @@ function abs(value)
 			if (!( abs(a[i]) in clength ))
 			{
 				print ":( Assembly file does not match cprops file. Exiting!" > "/dev/stderr"
+				print $0 > "/dev/stderr"
 				exit 1
 			}
 			counter += 1

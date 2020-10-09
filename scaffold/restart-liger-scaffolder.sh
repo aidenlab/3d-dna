@@ -6,7 +6,7 @@ USAGE="
 *****************************************************
 This is a wrapper for a Hi-C Limitless Iterative Greedy genome assembly (LIGer) algorithm, version date: Dec 7, 2016.
 
-Usage: ./run-liger-scaffolder.sh [-h] [-s minimal_scaffold_size] [-t link_threshold] [-q mapq] path_to_cprops_file path_to_merge_nodups_file
+Usage: ./restart-liger-scaffolder.sh [-h] [-s minimal_scaffold_size] [-t link_threshold] [-q mapq] path_to_cprops_file path_to_merge_nodups_file
 
 ARGUMENTS:
 path_to_cprops_file     Path to (prefiltered) cprops file listing contigs for which LIGer scaffolding will be attempted
@@ -117,6 +117,8 @@ if [ ! -f $scrape_contacts_script ] || [ ! -f $merge_scores_script ] || [ ! -f $
     exit 1
 fi
 
+STEP=1
+
 ## PREP FOR FIRST STEP - TODO: make restarting from any step possible
 if [ ! -f "h.scaffolds.original.notation.step.""0"".txt" ]; then
 	echo "...Scaffolding all scaffolds and contigs greater or equal to $SIZE bp."	
@@ -124,9 +126,33 @@ if [ ! -f "h.scaffolds.original.notation.step.""0"".txt" ]; then
 	gawk -v SIZE=${SIZE} '$3>=SIZE && $1!~/:::debris$/{print $2; next}{print $2 >"/dev/stderr"}' $contigPropFile > "h.scaffolds.original.notation.step.""0"".txt" 2>"h.dropouts.step.""0"".txt"
 else
 	echo "...Explicit scaffold set has been listed as input. Using set as a first iteration."
+	# last step with all files
+	last=$(find . -name 'h.scaffolds.step.*.txt' | sort -t "." -k 5,5nr | head -1 | awk -F '.' '{print $5}')
+	STEP=${last}
+	([ -s h.scaffolds.step.${last}.txt ] && [ -s h.scaffolds.original.notation.step.${last}.txt ]) || STEP=$((-1+$STEP))
+	
+	while [[ $(find . -name 'h.scaffolds.step.*.txt' | cut -d. -f5 | sort -nr | head -1) -gt "$STEP" ]]; do
+		find . -name 'h.scaffolds.step.*.txt' | sort -t "." -k 5,5nr | head -1 | xargs rm
+	done
+	
+	while [[ $(find . -name 'h.dropouts.step.*.txt' | cut -d. -f5 | sort -nr | head -1) -gt "$STEP" ]]; do
+		find . -name 'h.dropouts.step.*.txt' | sort -t "." -k 5,5nr | head -1 | xargs rm
+	done	
+
+	while [[ $(find . -name 'h.scaffolds.original.notation.step.*.txt' | cut -d. -f7 | sort -nr | head -1) -gt "$STEP" ]]; do	
+		find . -name 'h.scaffolds.original.notation.step.*.txt' | sort -t "." -k 7,7nr | head -1 | xargs rm
+	done	
+	
+	while [[ $(find . -name 'h.double.sorted.confidence.step.*.txt' | cut -d. -f7 | sort -nr | head -1) -gt "$STEP" ]]; do		
+		find . -name 'h.double.sorted.confidence.step.*.txt' | sort -t "." -k 7,7nr | head -1 | xargs rm
+	done
+	
+	while [[ $(find . -name 'h.scores.step.*.txt' | cut -d. -f5 | sort -nr | head -1) -gt "$STEP" ]]; do
+		find . -name 'h.scores.step.*.txt' | sort -t "." -k 5,5nr | head -1 | xargs rm
+	done
+	STEP=$((1+$STEP))
 fi
 
-STEP=1
 echo "...Starting iteration # $STEP"
 
 # MAIN LOOP

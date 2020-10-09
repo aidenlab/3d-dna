@@ -33,8 +33,6 @@ This post-processing includes four steps: (i) a polishing algorithm which attemp
 - `Bash >=4`
 - `GNU Awk >=4.0.2`
 - `GNU coreutils sort >=8.11`
-- `Python >=2.7` -  for chromosome number-aware splitter module only 
-- `scipy numpy matplotlib` - for chromosome number-aware splitter module only
 
 #### Recommended
 - `GNU Parallel >=20150322` – highly recommended to increase performance
@@ -95,12 +93,11 @@ l) `	data`	– mapping data tables used for validation of the 2017 assemblies (A
 The pipeline generates a number of files. The types of files are listed below. The main outputs are the fasta files annotated as “FINAL” which contains the output scaffolds.
 
 a) 	.fasta files
-- 	“FINAL” – chromosome-length scaffolds;
-- 	“final” – input with all the misjoin correction introduced;
+- 	“FINAL” – chromosome-length scaffolds, small and tiny scaffolds;
+- 	“final” – Input with all the misjoin correction introduced;
 
 b) 	.hic files
--	“FINAL“ - after the addition of gaps to the chromosome-length assembly (built on request with --build-gapped-map option);
--   	“final“ - after sealing stage;
+-   "final" - after sealing stage;
 - 	“polished” – after polishing stage;
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
@@ -119,11 +116,18 @@ e) 	.assembly (supersedes .cprops and .asm files)
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
 
-
 f) 	supplementary files:
 - 	edits.for.step.\*.txt; mismatches.at.step.\*.txt; suspect_2D.at.step.\*.txt - list of problematic regions (Juicebox 2D annotation format);
 - 	alignments.txt (for diploid mode only) – pairwise alignment data for alternative haplotype candidates, parsed from LASTZ output.
 
+
+
+### Citations and licensing
+If you use this code or the resulting assemblies, please cite the following paper:
+
+Dudchenko, O., Batra, S.S., Omer, A.D., Nyquist, S.K., Hoeger, M., Durand, N.C., Shamim, M.S., Machol, I., Lander, E.S., Aiden, A.P., et al. (2017). *De novo assembly of the Aedes aegypti genome using Hi-C yields chromosome-length scaffolds.* Science. Apr 7; 356(6333):92-95. doi: https://doi.org/10.1126/science.aal3327. Epub 2017 Mar 23.
+
+#### This software is distributed under The MIT License (MIT).
 
 [Supporting Online Materials]: <http://science.sciencemag.org/content/suppl/2017/03/22/science.aal3327.DC1?_ga=1.9816115.760837492.1490574064>
 [Dudchenko et al., De novo assembly of the Aedes aegypti genome using Hi-C yields chromosome-length scaffolds. Science, 2017.]: <http://science.sciencemag.org/content/early/2017/03/22/science.aal3327.full>

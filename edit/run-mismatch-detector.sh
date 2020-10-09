@@ -16,22 +16,30 @@ USAGE="
 *****************************************************
 This is a wrapper for a fragment of Hi-C misassembly detection pipeline, version date: Dec 3, 2016. This fragment concerns with generating a mismatch annotation file that will later be overlaid with scaffold boundaries to excise regions spanning misassemblies.
 
-Usage: ./run-mismatch-detector.sh [-h] [-p percentile] [-b bin_size_aka_resolution] [-d depletion_region_size] path_to_hic_file
+Usage: ./run-mismatch-detector.sh [-h] [-c centile] [-w coarse_resolution] [-d coarse_depletion_area] [-n fine_resolution] path_to_hic_file
 
 ARGUMENTS:
 path_to_hic_file     	Path to Juicebox .hic file of the current assembly.
 
 OPTIONS:
 -h			Shows this help
--c percentile		Sets percent of the map to saturate (0<=c<=100, default is 5).
--w wide_res			Sets resolution for the first-pass search of mismatches (default is 25000 bp)
--n narrow_res		Sets resolution for the precise mismatch localizaton (n<w, default is 1000 bp)
--d depletion_area	Sets the size of the region to aggregate the depletion score in the wide path (d >= 2*w, default is 100000 bp)
+-c saturation_centile	
+			Sets percent of the map to saturate (0<=c<=100, default is 5).
+-w coarse_resolution
+			Sets resolution for the first-pass search of mismatches (default is 25000 bp).
+-d coarse_depletion_area
+			Sets the size of the region to aggregate the depletion score in the wide path (d >= 2*w, default is 100000 bp).
+-n fine_resolution
+			Sets resolution for the precise mismatch localizaton (n<w, default is 1000 bp).
 
 Unprompted
--p true/false		Use GNU Parallel to speed up computation (default is true)
--k					Sensitivity to magnitude of depletion, percent of expected (0<=k<=100, default is 50 i.e. label region as mismatch when score is 1/2 of expected)
--b NONE/VC/VC_SQRT/KR	Sets which type of contact matrix balancing to use (default KR)
+-p true/false
+			Use GNU Parallel to speed up computation (default is true).
+-k sensitivity_value
+			Sensitivity to magnitude of depletion, percent of expected (0<=k<=100, default is 50 i.e. label region as mismatch when score is 1/2 of expected).
+-b NONE/VC/VC_SQRT/KR
+			Sets which type of contact matrix balancing to use (default KR).
+
 
 Uses compute-quartile.awk, precompute-depletion-score.awk [[...]] that should be in the same folder as the wrapper script.
 

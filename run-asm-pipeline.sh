@@ -26,7 +26,7 @@
 # 3D-DNA de novo genome assembly pipeline.
 #
 
-version=180922
+version=190716
 
 echo `readlink -f $0`" "$*
 
@@ -36,7 +36,7 @@ echo "version: "${version}
 
 USAGE_short="
 *****************************************************
-3D de novo assembly: version 180114
+3D de novo assembly: version "$version"
 
 USAGE: ./run-asm-pipeline.sh [options] <path_to_input_fasta> <path_to_input_mnd> 
 
@@ -146,9 +146,8 @@ ADDITIONAL OPTIONS:
 			Option to pick up processing assuming the first round of scaffolding is done. In conjunction with --early-exit this option is to help tune the parameters for best performance.
 --sort-output
 			Option to sort the chromosome-length scaffolds by size, in the descending order.
---build-gapped-map
-			Option to output an additional contact map corresponding to the assembly after the gaps have been added between scaffolded sequences.
-
+-c|--chromosome-map chromosome_count
+			Option to build a standard sandboxed hic file for the first chromosome_count Hi-C scaffolds 
 *****************************************************
 "
 
@@ -163,11 +162,12 @@ MAX_ROUNDS=2	# use 2 for Hs2 and 9 for AaegL4
 mapq=1	# default read mapping quality threshold for Hi-C scaffolder
 
 # misassembly detector and editor default params
-editor_coarse_resolution=25000	
-editor_fine_resolution=1000
+editor_saturation_centile=5
+editor_coarse_resolution=25000
 editor_coarse_region=125000
 editor_coarse_stringency=55
-editor_saturation_centile=5
+editor_coarse_norm="KR"	
+editor_fine_resolution=1000
 editor_repeat_coverage=2
 
 # polisher default params
@@ -201,7 +201,6 @@ stage=""	# by default run full pipeline
 early=false
 fast=false
 sort_output=false
-build_gapped_map=false
 
 ############### HANDLE OPTIONS ###############
 
@@ -262,8 +261,8 @@ while :; do
 # organizational
 		-s|--stage) OPTARG=$2
 			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "merge" ] || [ "$OPTARG" == "finalize" ]; then
-			echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
-			stage=$OPTARG
+				echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
+				stage=$OPTARG
 			else
 				echo ":( Wrong syntax for pipeline stage. Exiting!" >&2
 			fi
@@ -310,6 +309,15 @@ while :; do
 			else
 				echo ":( Wrong syntax for misjoin detection stringency parameter. Using the default value ${editor_coarse_stringency}%." >&2
 			fi
+        	shift
+        ;;
+        --editor-coarse-norm) OPTARG=$2
+        	if [ $OPTARG == NONE ] || [ $OPTARG == VC ] || [ $OPTARG == VC_SQRT ] || [ $OPTARG == KR ]; then
+    	    	echo " --editor-coarse-norm flag was triggered. Type of norm chosen for the contact matrix is $OPTARG." >&1
+				editor_coarse_norm=$OPTARG
+    		else
+    			echo ":( Unrecognized value for -b flag. Running with default parameters (-b NONE)." >&2
+    		fi
         	shift
         ;;
         --editor-fine-resolution) OPTARG=$2
@@ -537,10 +545,17 @@ while :; do
 			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
 			sort_output=true
 		;;
-		--build-gapped-map)
-			echo " --build-gapped-map was triggered, will build an additional hic file corresponding to final assembly with gaps added between draft sequences." >&1
-			build_gapped_map=true
-		;;
+        -c|--chromosome-map) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+					echo " --chromosome-map flag was triggered, will build an additional standard hic file corresponding to _HiC.assembly." >&1
+					chromosome_count=$OPTARG
+			else
+					echo ":( Wrong syntax for chromosome count parameter value. Exiting!" >&2
+					exit 1
+			fi
+			shift
+                ;;
 # TODO: merger, sealer, etc options              
 		--) # End of all options
 			shift
@@ -660,6 +675,8 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
             ln -sf ${orig_mnd} ${genomeid}.mnd.${ROUND}.txt
         fi
 	else
+        ln -sf ${orig_mnd} ${genomeid}.mnd.${ROUND}.txt
+
 		[ ! -f ${genomeid}.0.cprops ] || [ ! -f ${genomeid}.0.asm ] || [ ! -f ${genomeid}.0.hic ] || [ ! -f ${genomeid}.mnd.0.txt ] || [ ! -f ${genomeid}.0_asm.scaffold_track.txt ] || [ ! -f ${genomeid}.0_asm.superscaf_track.txt ] && echo >&2 ":( No early exit files are found. Please rerun the pipeline to include the round 0 assembly. Exiting!" && exit 1
 	fi
 
@@ -690,7 +707,7 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
 
 	# annotate near-diagonal mismatches in the map
 		echo "...detecting misjoins in round ${ROUND} assembly:" >&1
-		bash ${pipeline}/edit/run-mismatch-detector.sh -p ${parallel} -c ${editor_saturation_centile} -w ${editor_coarse_resolution} -d ${editor_coarse_region} -k ${editor_coarse_stringency} -n ${editor_fine_resolution} ${genomeid}.${ROUND}.hic
+		bash ${pipeline}/edit/run-mismatch-detector.sh -p ${parallel} -c ${editor_saturation_centile} -w ${editor_coarse_resolution} -d ${editor_coarse_region} -k ${editor_coarse_stringency} -n ${editor_fine_resolution} -b ${editor_coarse_norm} ${genomeid}.${ROUND}.hic
 	# annotate repeats by coverage analysis
 		bash ${pipeline}/edit/run-coverage-analyzer.sh -w ${editor_coarse_resolution} -t ${editor_repeat_coverage} ${genomeid}.${ROUND}.hic
 	# store intermediate mismatch stuff	- not necessary
@@ -702,12 +719,15 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
 		mv coverage_wide.wig coverage_wide.at.step.${ROUND}.wig
 		mv repeats_wide.bed repeats_wide.at.step.${ROUND}.bed
 
+                resolved=$(awk 'NR==2{print $3}' ${genomeid}.${ROUND}_asm.superscaf_track.txt)  # scaled coordinates    
+                awk -v end_interval=resolved -v bin=${editor_coarse_resolution} -f ${pipeline}/supp/plot_coverage.awk coverage_wide.at.step.${ROUND}.wig > coverage_wide.at.step.${ROUND}.dist.txt
+
 	# consolidate bed annotations
 		cat mismatch_narrow.at.step.${ROUND}.bed repeats_wide.at.step.${ROUND}.bed | sort -k 2,2n | awk 'BEGIN{FS="\t"; OFS="\t"}NR==1{start=$2; end=$3; next}$2<=end{if($3>end){end=$3}; next}{print "assembly", start, end; start=$2; end=$3}END{print "assembly", start, end}' > suspect.at.step.${ROUND}.bed
 
 	# convert bed track into 2D annotations
 		resolved=$(awk 'NR==2{print $3}' ${genomeid}.${ROUND}_asm.superscaf_track.txt)	# scaled coordinates	
-#!!PROBLEM!!
+		
 		awk -v bin_size=${editor_fine_resolution} -f ${pipeline}/edit/overlay-edits.awk ${genomeid}.${ROUND}_asm.scaffold_track.txt suspect.at.step.${ROUND}.bed | awk -v r=${resolved} 'NR==1||$3<=r' > suspect_2D.at.step.${ROUND}.txt
 
 	# separate intra and inter-input scaffold mismatches
@@ -759,7 +779,7 @@ if [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "merge" ] 
 	echo "###############" >&1
 	echo "Starting polish:" >&1
 	
-bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -q ${mapq} -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
+	bash ${pipeline}/polish/run-asm-polisher.sh -p ${parallel} -q ${mapq} -j ${genomeid}.resolved.hic -a ${genomeid}.resolved_asm.scaffold_track.txt -b ${genomeid}.resolved_asm.superscaf_track.txt -s ${polisher_input_size} -c ${polisher_saturation_centile} -w ${polisher_coarse_resolution} -d ${polisher_coarse_region} -k ${polisher_coarse_stringency} -n ${polisher_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.resolved.cprops ${genomeid}.resolved.asm
 	
 	mv ${genomeid}.resolved.polish.cprops ${genomeid}.polished.cprops
 	mv ${genomeid}.resolved.polish.asm ${genomeid}.polished.asm
@@ -877,10 +897,7 @@ echo "###############" >&1
 echo "Finilizing output:" >&1
 bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
 
-# if requested build HiC map with added gaps
-if [ "$build_gapped_map" == "true" ]; then
-	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.FINAL.assembly
-	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.FINAL.cprops ${orig_mnd} > ${genomeid}.FINAL.mnd.txt
-	bash ${pipeline}/visualize/run-assembly-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.FINAL.assembly ${genomeid}.FINAL.mnd.txt
-	rm ${genomeid}.FINAL.mnd.txt ${genomeid}.FINAL.cprops ${genomeid}.FINAL.asm
+# if requested build _HiC.hic
+if [ ! -z ${chromosome_count} ]; then
+	bash ${pipeline}/visualize/build-sandboxed-hic.sh -c ${chromosome_count} ${genomeid}_HiC.assembly ${genomeid}.mnd.txt
 fi

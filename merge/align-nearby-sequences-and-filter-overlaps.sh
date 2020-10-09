@@ -17,7 +17,6 @@ merger_alignment_identity=20
 merger_alignment_length=20000
 merger_lastz_options=\"--gfextend\ --gapped\ --chain=200,200\"
 
-
 ## HANDLE OPTIONS
 
 while getopts "b:s:i:l:o:h" opt; do
