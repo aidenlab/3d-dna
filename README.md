@@ -19,7 +19,7 @@ Dudchenko, O., Batra, S.S., Omer, A.D., Nyquist, S.K., Hoeger, M., Durand, N.C.,
 #### This software is distributed under The MIT License (MIT).
 
 ### Overview of the pipeline
-`Software version: 180922`
+`Software version: 201013`
 
 An overview of the detailed workflow of the 3D-DNA pipeline is schematically given in Fig. S1 in [(Dudchenko et al., *Science*, 2017)](http://science.sciencemag.org/content/356/6333/92).
 
