@@ -18,6 +18,8 @@
 		next
 	}
 	
+	gsub("n","N")
+
 	total_length+=length
 	
 	if ($0!~/N/)
