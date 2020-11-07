@@ -387,7 +387,7 @@ END{
 			{	
 				blockcounter++		
 				print block[i] > ARGV[1]".tempfile"
-				command="cat "ARGV[1]".tempfile | tr \" \" \"\\n\" | awk '$1>0{print $1, $1;next}{print -$1, $1}' | sort -k 1,1n | awk '{print $2}' | tr \"\\n\" \" \" >>"outfile" && echo "" >> "outfile				
+				command="cat "ARGV[1]".tempfile | tr \" \" \"\\n\" | awk '$1>0{print $1, $1;next}{print -$1, $1}' | sort -k 1,1n | awk '{print $2}' | paste -s -d \" \" >> "outfile				
 				
 				
 				system(command)
