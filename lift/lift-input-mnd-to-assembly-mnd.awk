@@ -47,7 +47,7 @@ BEGIN{
 	}
 	CUTOFF=2100000000
 	pos = 1
-	if (!length && !sandbox)
+	if (!label && !sandbox)
 	{
 		label="assembly"
 	}
