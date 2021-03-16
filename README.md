@@ -2,7 +2,7 @@
 
 This version of the pipeline (201008) adds a JBAT-compatible phasing module to the pipeline.
 
-For a detailed description of the pipeline and how it integrates with other tools designed by the Aiden Lab see [Genome Assembly Cookbook](http://aidenlab.org/assembly/manual_180322.pdf) on http://aidenlab.org/assembly.
+For a detailed description of the pipeline and how it integrates with other tools designed by the Aiden Lab see [Genome Assembly Cookbook](http://aidenlab.org/assembly/manual_180322.pdf) on https://www.dnazoo.org/methods.
 
 For the original version of the pipeline and to reproduce the Hs2-HiC and the AaegL4 genomes reported in [(Dudchenko et al., *Science*, 2017)](http://science.sciencemag.org/content/356/6333/92) see the [original commit](https://github.com/theaidenlab/3d-dna/tree/745779bdf64db6e55bddb70c24e9b58825938c33).
 
