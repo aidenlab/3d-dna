@@ -137,7 +137,7 @@ FILENAME==ARGV[1]{
 		tmp3=-$2 + globalpos[$1] + clength[$1]
 	}
 	
-	$2=int((tmp2-1)/scale)
+	$2=int(tmp2/scale)
 	$3=int(tmp3/scale)
 	$1=outlabel"_"chrom[$1]
 	
