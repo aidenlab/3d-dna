@@ -1,12 +1,12 @@
 # 3D de novo assembly (3D-DNA) pipeline
 
-This version of the pipeline (180419) updates the merge section that aims to address errors of undercollapsed heterozygosity.
+This version of the pipeline (201008) adds a JBAT-compatible phasing module to the pipeline.
 
-For a detailed description of the pipeline and how it integrates with other tools designed by the Aiden Lab see [Genome Assembly Cookbook](http://aidenlab.org/assembly/manual_180322.pdf) on http://aidenlab.org/assembly.
+For a detailed description of the pipeline and how it integrates with other tools designed by the Aiden Lab see [Genome Assembly Cookbook](http://aidenlab.org/assembly/manual_180322.pdf) on https://www.dnazoo.org/methods.
 
 For the original version of the pipeline and to reproduce the Hs2-HiC and the AaegL4 genomes reported in [(Dudchenko et al., *Science*, 2017)](http://science.sciencemag.org/content/356/6333/92) see the [original commit](https://github.com/theaidenlab/3d-dna/tree/745779bdf64db6e55bddb70c24e9b58825938c33).
 
-For the detailed description of the merge section see https://github.com/theaidenlab/AGWG-merge.
+For the detailed description of the phasing section see Hoencamp et al., 2021.
 
 Feel free to post your questions and comments at:
 [http://www.aidenlab.org/forum.html]
@@ -93,11 +93,11 @@ l) `	data`	– mapping data tables used for validation of the 2017 assemblies (A
 The pipeline generates a number of files. The types of files are listed below. The main outputs are the fasta files annotated as “FINAL” which contains the output scaffolds.
 
 a) 	.fasta files
-- 	“FINAL” – chromosome-length scaffolds, small and tiny scaffolds;
-- 	“final” – Input with all the misjoin correction introduced;
+- 	“HiC” – chromosome-length scaffolds, small and tiny scaffolds;
 
 b) 	.hic files
--   "final" - after sealing stage;
+-   "HiC" - sandboxed contact map corresponding to the HiC.fasta reference;
+-   "rawchrom/final" - after sealing stage;
 - 	“polished” – after polishing stage;
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
@@ -110,8 +110,8 @@ d) 	.bed & .wig files
 
 e) 	.assembly (supersedes .cprops and .asm files)
 - 	Custom file format that tracks modifications to the input contigs at various stages in the assembly. Together with matching .hic files input to Juicebox Assembly Tools. The files are available for all stages of the assembly including:
--	“FINAL“ - after the addition of gaps to the chromosome-length assembly;
--   	“final“ - after sealing stage;
+-	  “HiC“ - after the addition of gaps to the chromosome-length assembly;
+-   “final“ - after sealing stage;
 - 	“polished” – after polishing stage;
 - 	“resolved” – after editing and scaffolding;
 - 	[0123…] – correspond to the assembly at individual editing iterations;
