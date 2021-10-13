@@ -92,7 +92,7 @@ queryid=$(basename "$queryid" .fa)
 
 # 1) to speed things up split up the target genome into chunks
 
-n=`awk -f ${pipeline}/utils/generate-cprops-file.awk ${targetid}.tmp.fasta | awk -v splitsize=${splitsize} 'BEGIN{counter++}{if(c>splitsize){counter++; c=0}; print $1 >"split."counter".txt"; c+=$NF;}END{print counter}' -`
+n=`awk -v ignore_sorting=1 -f ${pipeline}/utils/generate-assembly-file-from-fasta.awk ${targetid}.tmp.fasta | awk '$0~/^>/{print substr($0,2)}' | awk -v splitsize=${splitsize} 'BEGIN{counter++}{if(c>splitsize){counter++; c=0}; print $1 >"split."counter".txt"; c+=$NF;}END{print counter}' -`
 
 echo $n
 
