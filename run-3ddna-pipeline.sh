@@ -2,7 +2,7 @@
 ##########
 #The MIT License (MIT)
 #
-# Copyright (c) 2018 Aiden Lab
+# Copyright (c) 2021 Aiden Lab
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 # 3D-DNA de novo genome assembly pipeline.
 #
 
-version=190716
+version=210623
 
 echo `readlink -f $0`" "$*
 
@@ -38,44 +38,67 @@ USAGE_short="
 *****************************************************
 3D de novo assembly: version "$version"
 
-USAGE: ./run-asm-pipeline.sh [options] <path_to_input_fasta> <path_to_input_mnd> 
+USAGE: ./run-3ddna-pipeline.sh [options] <path_to_input_fasta> <path_to_input_mnd> 
 
 DESCRIPTION:
 This is a script to assemble draft assemblies (represented in input by draft fasta and deduplicated list of alignments of Hi-C reads to this fasta as produced by the Juicer pipeline) into chromosome-length scaffolds. The script will produce an output fasta file, a Hi-C map of the final assembly, and a few supplementary annotation files to help review the result in Juicebox.
 
 ARGUMENTS:
-path_to_input_fasta			Specify file path to draft assembly fasta file.
-path_to_input_mnd			Specify path to deduplicated list of alignments of Hi-C reads to the draft assembly fasta as produced by the Juicer pipeline: the merged_nodups file (mnd).
+path_to_input_fasta
+							Specify file path to draft assembly fasta file.
+path_to_input_mnd
+							Specify path to deduplicated list of alignments of Hi-C reads to the draft assembly fasta as produced by the Juicer pipeline: the merged_nodups file (mnd).
 
 OPTIONS:
--m|--mode haploid/diploid			Runs in specific mode, either haploid or diploid (default is haploid).
--i|--input input_size			Specifies threshold input contig/scaffold size (default is 15000). Contigs/scaffolds smaller than input_size are going to be ignored.
--r|--rounds number_of_edit_rounds			Specifies number of iterative rounds for misjoin correction (default is 2).
--s|--stage stage					Fast forward to later assembly steps, can be polish, split, seal, merge and finalize.
--h|--help			Shows this help. Type --help for a full set of options.
+-r|--review path_to_review_assembly_file
+							Specifies a path to a JBAT review.assembly file.
+-c|--chrom_count number_of_chromosomes
+							Instructs the pipeline to treat the first <number_of_chromosomes> Hi-C scaffolds as chromosomes. Usually used in conjunction with -r once the scaffolds have been manually reviewed and polished. The flag will trigger generating a standard sandboxed hic contact file fort the chromosome-length assembly.
+--organism organism_name
+							Add an [organism=\"organism_name\"] tag to output sequence names.
+--isolate isolate_name
+							Add a [isolate=\"isolate_name\"] tag to output sequence names.
+-h|--help
+							Type -h to shows this help. Type --help for a full set of options.
 *****************************************************
 "
 
 USAGE_long="
 *****************************************************
-3D de novo assembly: version 170123
+3D de novo assembly: version "$version"
 
-USAGE: ./run-asm-pipeline.sh [options] <path_to_input_fasta> <path_to_input_mnd> 
+USAGE: ./run-3ddna-pipeline.sh [options] <path_to_input_fasta> <path_to_input_mnd> 
 
 DESCRIPTION:
 This is a script to assemble draft assemblies (represented in input by draft fasta and deduplicated list of alignments of Hi-C reads to this fasta as produced by the Juicer pipeline) into chromosome-length scaffolds. The script will produce an output fasta file, a Hi-C map of the final assembly, and a few supplementary annotation files to help review the result in Juicebox.
 
 ARGUMENTS:
-path_to_input_fasta			Specify file path to draft assembly fasta file.
-path_to_input_mnd			Specify path to deduplicated list of alignments of Hi-C reads to the draft assembly fasta as produced by the Juicer pipeline: the merged_nodups file (mnd).
+path_to_input_fasta
+			Specify file path to draft assembly fasta file.
+path_to_input_mnd
+			Specify path to deduplicated list of alignments of Hi-C reads to the draft assembly fasta as produced by the Juicer pipeline: the merged_nodups file (mnd).
 
 OPTIONS:
--h			Shows main options.
---help			Shows this help.
--m|--mode haploid/diploid			Runs in specific mode, either haploid or diploid (default is haploid).
--i|--input input_size			Specifies threshold input contig/scaffold size (default is 15000). Contigs/scaffolds smaller than input_size are going to be ignored.
--r|--rounds number_of_edit_rounds			Specifies number of iterative rounds for misjoin correction (default is 2).
--s|--stage stage					Fast forward to later assembly steps, can be polish, split, seal, merge and finalize.
+-h
+			Shows main options.
+--help
+			Shows this help.
+
+-r|--review path_to_review_assembly_file
+			Specify a path to a JBAT review.assembly file.
+-c|--chromosomes number_of_chromosomes
+			Instructs the pipeline to treat the first <number_of_chromosomes> Hi-C scaffolds as chromosomes. Usually used in conjunction with -r once the scaffolds have been manually reviewed and polished. The flag will trigger generating a standard sandboxed hic contact file fort the chromosome-length assembly. TODO: add appropriate labels to fasta.
+
+-i|--input input_size
+			Specifies threshold input contig/scaffold size (default is 15000). Contigs/scaffolds smaller than input_size are going to be ignored.
+-e|--edits number_of_edit_rounds
+			Specifies number of iterative rounds for misjoin correction (default is 2).
+-s|--stage stage
+			Fast forward to later assembly steps, can be polish, split, seal, merge and finalize.
+--organism organism_name
+			Add an [organism=\"organism_name\"] tag to output sequence names.
+--isolate isolate_name
+			Add a [isolate=\"isolate_name\"] tag to output sequence names.
 
 ADDITIONAL OPTIONS:
 **scaffolder**
@@ -140,14 +163,12 @@ ADDITIONAL OPTIONS:
 			Gap size to be added between scaffolded sequences in the final chromosome-length scaffolds (default is 500).
 
 **supplementary**
--e|--early-exit
+--early-exit
 			Option to exit after first round of scaffolding.
--f|--fast-start
+--fast-start
 			Option to pick up processing assuming the first round of scaffolding is done. In conjunction with --early-exit this option is to help tune the parameters for best performance.
---sort-output
-			Option to sort the chromosome-length scaffolds by size, in the descending order.
--c|--chromosome-map chromosome_count
-			Option to build a standard sandboxed hic file for the first chromosome_count Hi-C scaffolds 
+--sort-chromosomes [number_of_chromosomes_to_sort]
+			Option to sort the chromosome-length scaffolds by size, in the descending order. If a value is provided with the flag only the first <number_of_chromosomes_to_sort> will be sorted by size. Otherwise all scaffolds will be sorted.
 *****************************************************
 "
 
@@ -155,9 +176,8 @@ pipeline=`cd "$( dirname $0)" && pwd`
 
 ## default parameter setup
 
-diploid="false"	# by default run haploid pipeline
 input_size=15000 # contigs/scaffolds smaller than input_size are ignored
-MAX_ROUNDS=2	# use 2 for Hs2 and 9 for AaegL4
+MAX_ROUNDS=2	# usually 2 is adequate
 
 mapq=1	# default read mapping quality threshold for Hi-C scaffolder
 
@@ -186,13 +206,6 @@ splitter_coarse_region=3000000
 splitter_coarse_stringency=55
 splitter_saturation_centile=5
 
-# merger default params after option handling
-default_merger_search_band=3000000
-default_merger_alignment_score=50000000
-default_merger_alignment_identity=20
-default_merger_alignment_length=20000
-default_merger_lastz_options=\"--gfextend\ --gapped\ --chain=200,200\"
-
 # finalizer default params
 gap_size=500	# default length of gaps to be added between scaffolded sequences in the chrom-length scaffolds
 
@@ -200,7 +213,7 @@ gap_size=500	# default length of gaps to be added between scaffolded sequences i
 stage=""	# by default run full pipeline
 early=false
 fast=false
-sort_output=false
+sort_chromosomes=1 # by default do not sort chromosomes
 
 ############### HANDLE OPTIONS ###############
 
@@ -216,18 +229,28 @@ while :; do
         ;;
 
 ## SHORT MENU OPTIONS
-		-m|--mode) OPTARG=$2
-			if [ "$OPTARG" == "haploid" ] || [ "$OPTARG" == "diploid" ]; then
-				echo >&1 " -m|--mode flag was triggered. Running in $OPTARG mode."
+        -r|--review) OPTARG=$2
+			if [[ -s $OPTARG ]]; then
+				echo " -r|--review flag was triggered, treating file $OPTARG as a JBAT review file for draft fasta in arguments." >&1
+				review_assembly=$OPTARG
 			else
-				echo ":( Unrecognized value for mode flag. Running with default parameters (--mode haploid)." >&2
+				echo ":( File not found in the suggested review assembly file path or file is empty. Exiting!" >&2
+				exit 1
 			fi
-			if [ "$OPTARG" == "diploid" ]; then
-				diploid="true"
+        	shift
+        ;;        
+		-c|--chromosomes) OPTARG=$2
+			re='^[0-9]+$'
+			if [[ $OPTARG =~ $re ]]; then
+					echo " -c|--chromosomes flag was triggered, will build an additional standard \"sandboxed\" hic file corresponding to _HiC.assembly with $OPTARG chromosome(s)." >&1
+					chromosome_count=$OPTARG
+			else
+					echo ":( Wrong syntax for chromosome count parameter value. Exiting!" >&2
+					exit 1
 			fi
 			shift
-    	;;
-        -r|--rounds) OPTARG=$2
+        ;;
+        -e|--edits) OPTARG=$2
         	re='^[0-9]+$'
 			if [[ $OPTARG =~ $re ]] && [[ $OPTARG -ge 0 ]]; then
 				echo " -r|--rounds flag was triggered, will run $OPTARG round(s) of misjoin correction." >&1
@@ -260,7 +283,7 @@ while :; do
         ;;
 # organizational
 		-s|--stage) OPTARG=$2
-			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "merge" ] || [ "$OPTARG" == "finalize" ]; then
+			if [ "$OPTARG" == "scaffold" ] || [ "$OPTARG" == "polish" ] || [ "$OPTARG" == "split" ] || [ "$OPTARG" == "seal" ] || [ "$OPTARG" == "finalize" ]; then
 				echo " -s|--stage flag was triggered, fast-forwarding to \"$OPTARG\" pipeline section." >&1
 				stage=$OPTARG
 			else
@@ -463,64 +486,6 @@ while :; do
 			fi
         	shift
         ;;
-        
-# merger
-        --merger-search-band) OPTARG=$2
-        	re='^[0-9]+$'	## TODO: specify/generalize re matrix resolutions size
-			if [[ $OPTARG =~ $re ]]; then
-				echo " --merger-search-band flag was triggered, merger will look for alternative haplotypes to input contigs and scaffolds within $OPTARG bases from their suggested location in the assembly." >&1
-				merger_search_band=$OPTARG
-			else
-				echo ":( Wrong syntax for alternative haplotype search region size. Exiting!" >&2
-				exit
-			fi
-        	shift
-        ;;
-        --merger-alignment-length) OPTARG=$2
-			re='^[0-9]+$'
-			if [[ $OPTARG =~ $re ]]; then
-				echo " --merger-alignment-length flag was triggered, overlap length threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
-				merger_alignment_length=$OPTARG
-			else
-				echo ":( Wrong syntax for alternative haplotype search alignment length. Exiting!" >&2
-				exit 1
-			fi
-        	shift
-        ;;
-        --merger-alignment-identity) OPTARG=$2
-			re='^[0-9]+$'
-			if [[ $OPTARG =~ $re ]]; then
-				echo " --merger-alignment-identity flag was triggered, lastz alignment identity threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
-				merger_alignment_identity=$OPTARG
-			else
-				echo ":( Wrong syntax for alternative haplotype search alignment identity. Exiting!" >&2
-				exit 1
-			fi
-        	shift
-        ;;     
-        --merger-alignment-score) OPTARG=$2
-        	re='^[0-9]+$'
-			if [[ $OPTARG =~ $re ]]; then
-				echo " --merger-alignment-score flag was triggered, lastz alignment score threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
-				merger_alignment_score=$OPTARG
-			else
-				echo ":( Wrong syntax for alternative haplotype search alignment score. Exiting!" >&2
-				exit
-			fi
-        	shift
-        ;;
-        --merger-lastz-options) OPTARG=$2
-        	re='^\"--.+\"$'
-        	if [[ $OPTARG =~ $re ]]; then
-        		echo " --merger-lastz-options flag was triggered, overlap length threshold for sequences to be recognized as alternative haplotypes is set to $OPTARG." >&1
-        		merger_lastz_options="$OPTARG"
-			else
-				echo ":( Wrong syntax for alternative haplotype search lastz option string. Exiting!" >&2
-				exit 1
-			fi
-        	shift
-        ;;
-        
 # finalizer        
 		-g|--gap-size) OPTARG=$2
 			re='^[0-9]+$'
@@ -533,29 +498,35 @@ while :; do
         	shift 
 		;;
 # supplementary options:
-		-e|--early-exit)
-			echo " -e|--early-exit flag was triggered, will do early exit." >&1
+		--early-exit)
+			echo " --early-exit flag was triggered, will do early exit." >&1
 			early=true
 		;;
-		-f|--fast-start)
-			echo " -f|--fast-start flag was triggered, will start assuming first iterative round and map are available." >&1
+		--fast-start)
+			echo " --fast-start flag was triggered, will start assuming first iterative round and map are available." >&1
 			fast=true
 		;;
-		--sort-output)
-			echo " --sort-output was triggered, will sort output scaffolds by size." >&1
-			sort_output=true
-		;;
-        -c|--chromosome-map) OPTARG=$2
+		--sort-chromosomes) OPTARG=$2
 			re='^[0-9]+$'
 			if [[ $OPTARG =~ $re ]]; then
-					echo " --chromosome-map flag was triggered, will build an additional standard hic file corresponding to _HiC.assembly." >&1
-					chromosome_count=$OPTARG
+				echo " --sort-chromosomes was triggered with $OPTARG parameter, will sort the first $OPTARG output scaffolds by size." >&1
+				sort_chromosomes=$OPTARG
+				shift
 			else
-					echo ":( Wrong syntax for chromosome count parameter value. Exiting!" >&2
-					exit 1
+				echo " --sort-chromosomes was triggered without an argument, will sort all output scaffolds by size." >&1
+				sort_chromosomes=0
 			fi
+		;;
+		--organism) OPTARG=$2
+			echo " --organism flag was triggered with $OPTARG parameter, will add an [organism=$OPTARG] tag to output sequence names." >&1
+			organism=$OPTARG
 			shift
-                ;;
+		;;
+		--isolate) OPTARG=$2
+			echo " --isolate flag was triggered with $OPTARG parameter, will add an [isolate=$OPTARG] tag to output sequence names." >&1
+			isolate=$OPTARG
+			shift
+		;;
 # TODO: merger, sealer, etc options              
 		--) # End of all options
 			shift
@@ -580,16 +551,13 @@ done
 [[ ${splitter_coarse_region} -le ${splitter_coarse_resolution} ]] && echo >&2 ":( Requested depletion region size ${splitter_coarse_region} and bin size ${splitter_coarse_resolution} parameters for splitter are incompatible. Run ${pipeline}/edit/run-mismatch-detector.sh -h for instructions. Exiting!" && exit 1
 [[ ${splitter_coarse_resolution} -le ${splitter_fine_resolution} ]] && echo >&2 ":( Requested mismatch localization resolution ${splitter_fine_resolution} and coarse search bin size ${splitter_coarse_resolution} parameters for splitter are incompatible. Run ${pipeline}/edit/run-mismatch-detector.sh -h for instructions. Exiting!" && exit 1
 
-([[ $diploid == "false" ]] && [[ ! -z ${merger_band_width} || ! -z ${merger_alignment_score} || ! -z ${merger_alignment_identity} || ! -z ${merger_alignment_length} || ! -z ${merger_lastz_options} || $stage == "merge" ]]) && echo >&2 ":( Some options were requested that are not compatible with default haploid mode. Please include --mode diploid in your option list or remove flag calls associated with the merge block of the pipeline. Exiting!" && exit 1
+([[ ! -z ${review_assembly} ]] && ! ([ "$stage" != "" ] || [ "$stage" != "seal" ] || [ "$stage" != "finalize" ])) && echo >&2 ":( Review mode is incompatible with the set stage parameter $stage. Exiting!" && exit 1
 
-## set merger default parameters if missing any
-if [[ $diploid == "true" ]]; then
-	[[ -z ${merger_search_band} ]] && merger_search_band=${default_merger_search_band}
-	[[ -z ${merger_alignment_score} ]] && merger_alignment_score=${default_merger_alignment_score}
-	[[ -z ${merger_alignment_identity} ]] && merger_alignment_identity=${default_merger_alignment_identity}
-	[[ -z ${merger_alignment_length} ]] && merger_alignment_length=${default_merger_alignment_length}
-	[[ -z ${merger_lastz_options} ]] && merger_lastz_options=${default_merger_lastz_options}
-fi
+([[ ! -z ${review_assembly} ]] && [[ "$stage" != "seal" ]]) && stage="finalize" # in review mode the stage can be either seal or finalize
+
+([[ ${chromosome_count} -gt 1 ]] && [[ -z ${review_assembly} ]]) && echo >&2 ":| WARNING: -c|--chromosomes flag has been triggered while not in review mode. Note that this option is usually used with review.assembly after the number and ordering of chromosome-length scaffolds has been verified."
+
+([ "$stage" != "" ] && ([ "$early" == "true" ] || [ "$fast" == "true" ])) && echo >&2 ":( Flags -e|--early--exit and -f|--fast-start are incompatible with setting a specific pipeline stage. Exiting!" && exit 1
 
 ############### HANDLE EXTERNAL DEPENDENCIES ###############
 
@@ -600,13 +568,6 @@ if hash parallel 2>/dev/null; then
         [ $ver -ge 20150322 ] && parallel="true"
 fi
 [ $parallel == "false" ] && echo ":| WARNING: GNU Parallel version 20150322 or later not installed. We highly recommend to install it to increase performance. Starting pipeline without parallelization!" >&2
-
-## LASTZ dependency
-lastz="false"
-if hash lastz 2>/dev/null; then
-	lastz="true"
-fi
-[[ $lastz == "false" && $diploid == "true" ]] && echo >&2 ":( LASTZ not installed or not in the path while diploid mode is triggered. The merge section of the pipeline will not run. Exiting!" && exit 1
 
 ############### HANDLE ARGUMENTS ###############
 
@@ -636,12 +597,19 @@ fi
 
 orig_mnd=${genomeid}.mnd.txt
 
-if [ "$stage" != "scaffold" ] && [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize" ] && [ "$fast" != "true" ]; then
-awk -f ${pipeline}/utils/generate-sorted-cprops-file.awk ${orig_fasta} > ${genomeid}.cprops
+if [ ! -f ${genomeid}.assembly ]; then
+	awk -f ${pipeline}/utils/generate-assembly-file-from-fasta.awk ${orig_fasta} > ${genomeid}.assembly
 fi
 
+orig_assembly=${genomeid}.assembly
+
+if grep -q ':::fragment_\|:::debris\|:::overhang_\|:::gap' "$orig_assembly"; then
+	echo >&2 "The original fasta contains sequence labels that may interfere with labels assigned by the assembly pipeline. Please consider renaming your original sequences. Exiting!"
+	exit 1
+fi
+
+awk -f ${pipeline}/utils/extract-cprops-from-assembly.awk ${orig_assembly}
 orig_cprops=${genomeid}.cprops
-[ ! -f ${orig_cprops} ] && echo >&2 ":( No cprops file found. Please rerun the pipeline from scratch. Exiting!" && exit 1
 
 ##	calculate zoom
 # TODO: move this to mismatch detector, pass only scale
@@ -663,7 +631,7 @@ fi
 
 ############### ITERATIVE SCAFFOLDING/MISJOIN CORRECTION ###############
 
-if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
+if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ] && [ "$stage" != "finalize" ]; then
 	
 	ROUND=0
 
@@ -676,7 +644,6 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
         fi
 	else
         ln -sf ${orig_mnd} ${genomeid}.mnd.${ROUND}.txt
-
 		[ ! -f ${genomeid}.0.cprops ] || [ ! -f ${genomeid}.0.asm ] || [ ! -f ${genomeid}.0.hic ] || [ ! -f ${genomeid}.mnd.0.txt ] || [ ! -f ${genomeid}.0_asm.scaffold_track.txt ] || [ ! -f ${genomeid}.0_asm.superscaf_track.txt ] && echo >&2 ":( No early exit files are found. Please rerun the pipeline to include the round 0 assembly. Exiting!" && exit 1
 	fi
 
@@ -697,66 +664,81 @@ if [ "$stage" != "polish" ] && [ "$stage" != "split" ] && [ "$stage" != "seal" ]
         # build a hic map of the resulting assembly
             echo "...visualizing round ${ROUND} results:" >&1
             bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${current_cprops} ${genomeid}.${ROUND}.asm ${current_mnd}
-#            rm temp.${genomeid}.${ROUND}.asm_mnd.txt
 			rm ${current_mnd}
-        # early exit on round zero if requested
-            [ "$early" == "true" ] && exit 0
 		fi
-	# break out of the scaffold-mismatch detection loop if the max number of steps is reached
-		[ ${ROUND} -eq ${MAX_ROUNDS} ] && break
 
-	# annotate near-diagonal mismatches in the map
-		echo "...detecting misjoins in round ${ROUND} assembly:" >&1
-		bash ${pipeline}/edit/run-mismatch-detector.sh -p ${parallel} -c ${editor_saturation_centile} -w ${editor_coarse_resolution} -d ${editor_coarse_region} -k ${editor_coarse_stringency} -n ${editor_fine_resolution} -b ${editor_coarse_norm} ${genomeid}.${ROUND}.hic
-	# annotate repeats by coverage analysis
-		bash ${pipeline}/edit/run-coverage-analyzer.sh -w ${editor_coarse_resolution} -t ${editor_repeat_coverage} ${genomeid}.${ROUND}.hic
-	# store intermediate mismatch stuff	- not necessary
-		mv depletion_score_wide.wig depletion_score_wide.at.step.${ROUND}.wig
-		mv depletion_score_narrow.wig depletion_score_narrow.at.step.${ROUND}.wig
-		mv mismatch_wide.bed mismatch_wide.at.step.${ROUND}.bed
-		mv mismatch_narrow.bed mismatch_narrow.at.step.${ROUND}.bed
-	# store intermediate repeat stuff - not necessary
-		mv coverage_wide.wig coverage_wide.at.step.${ROUND}.wig
-		mv repeats_wide.bed repeats_wide.at.step.${ROUND}.bed
+		# break out of the scaffold-mismatch detection loop if the max number of steps is reached
+			[ ${ROUND} -eq ${MAX_ROUNDS} ] && break
 
-                resolved=$(awk 'NR==2{print $3}' ${genomeid}.${ROUND}_asm.superscaf_track.txt)  # scaled coordinates    
-                awk -v end_interval=resolved -v bin=${editor_coarse_resolution} -f ${pipeline}/supp/plot_coverage.awk coverage_wide.at.step.${ROUND}.wig > coverage_wide.at.step.${ROUND}.dist.txt
+		# annotate near-diagonal mismatches in the map
+			echo "...detecting misjoins in round ${ROUND} assembly:" >&1
+			bash ${pipeline}/edit/run-mismatch-detector.sh -p ${parallel} -c ${editor_saturation_centile} -w ${editor_coarse_resolution} -d ${editor_coarse_region} -k ${editor_coarse_stringency} -n ${editor_fine_resolution} -b ${editor_coarse_norm} ${genomeid}.${ROUND}.hic
+		# annotate repeats by coverage analysis
+			bash ${pipeline}/edit/run-coverage-analyzer.sh -w ${editor_coarse_resolution} -t ${editor_repeat_coverage} ${genomeid}.${ROUND}.hic
+		# store intermediate mismatch stuff	- not necessary
+			mv depletion_score_wide.wig depletion_score_wide.at.step.${ROUND}.wig
+			mv depletion_score_narrow.wig depletion_score_narrow.at.step.${ROUND}.wig
+			mv mismatch_wide.bed mismatch_wide.at.step.${ROUND}.bed
+			mv mismatch_narrow.bed mismatch_narrow.at.step.${ROUND}.bed
+		# store intermediate repeat stuff - not necessary
+			mv coverage_wide.wig coverage_wide.at.step.${ROUND}.wig
+			mv repeats_wide.bed repeats_wide.at.step.${ROUND}.bed
 
-	# consolidate bed annotations
-		cat mismatch_narrow.at.step.${ROUND}.bed repeats_wide.at.step.${ROUND}.bed | sort -k 2,2n | awk 'BEGIN{FS="\t"; OFS="\t"}NR==1{start=$2; end=$3; next}$2<=end{if($3>end){end=$3}; next}{print "assembly", start, end; start=$2; end=$3}END{print "assembly", start, end}' > suspect.at.step.${ROUND}.bed
+			annotated=$(awk '{c+=$3-$2}END{print c}' mismatch_narrow.at.step.${ROUND}.bed)
+			printf "...total %% genome annotated during mismatch analysis is: %.2f%%.\n" "$((10**2 * annotated*scale*100/totlength))e-2"
+			if [ $((annotated*scale*100/totlength)) -gt 10 ]; then
+				echo >&2 ":| WARNING: more than 10% of your genome assembly is flagged as problematic during mismatch analysis. Maybe your data is too sparse to do misjoin correction at default resolution. Please examine the relevant tracks and consider adjusting the --editor-coarse-resolution flag or other relevant editor flags!"
+			fi
 
-	# convert bed track into 2D annotations
-		resolved=$(awk 'NR==2{print $3}' ${genomeid}.${ROUND}_asm.superscaf_track.txt)	# scaled coordinates	
+			annotated=$(awk '{c+=$3-$2}END{print c}' repeats_wide.at.step.${ROUND}.bed)
+			printf "...total %% genome annotated during coverage analysis is %.2f%%.\n" "$((10**2 * annotated*scale*100/totlength))e-2"
+			if [ $((annotated*scale*100/totlength)) -gt 10 ]; then
+				echo >&2 ":| WARNING: more than 10% of your genome assembly is flagged as problematic during coverage analysis. Perhpaps your assembly contains a large number of collapsed repeats, alt heterozygosity or contaminan sequences. Please examine the relevant tracks and consider adjusting the --editor-repeat-coverage flag or other relevant editor flags!"
+			fi
+
+			resolved=$(awk 'NR==2{print $3}' ${genomeid}.${ROUND}_asm.superscaf_track.txt)  # scaled coordinates    
+			awk -v end_interval=resolved -v bin=${editor_coarse_resolution} -f ${pipeline}/supp/plot_coverage.awk coverage_wide.at.step.${ROUND}.wig > coverage_wide.at.step.${ROUND}.dist.txt
+
+		# consolidate bed annotations
+			cat mismatch_narrow.at.step.${ROUND}.bed repeats_wide.at.step.${ROUND}.bed | sort -k 2,2n | awk 'BEGIN{FS="\t"; OFS="\t"}NR==1{start=$2; end=$3; next}$2<=end{if($3>end){end=$3}; next}{print "assembly", start, end; start=$2; end=$3}END{print "assembly", start, end}' > suspect.at.step.${ROUND}.bed
+
+		# convert bed track into 2D annotations
+			resolved=$(awk 'NR==2{print $3}' ${genomeid}.${ROUND}_asm.superscaf_track.txt)	# scaled coordinates	
+			awk -v bin_size=${editor_fine_resolution} -f ${pipeline}/edit/overlay-edits.awk ${genomeid}.${ROUND}_asm.scaffold_track.txt suspect.at.step.${ROUND}.bed | awk -v r=${resolved} 'NR==1||$3<=r' > suspect_2D.at.step.${ROUND}.txt
+
+		# separate intra and inter-input scaffold mismatches
+			awk 'NR==1||$8=="debris"' suspect_2D.at.step.${ROUND}.txt > edits.for.step.$((ROUND+1)).txt
+		# optional
+			awk 'NR==1||$8=="mismatch"' suspect_2D.at.step.${ROUND}.txt > mismatches.at.step.$ROUND.txt
+
+		# early exit on round zero if requested
+			if [ "$early" == "true" ]; then
+				echo >&1 ":) Early exit requested with --early-exit flag. Exiting after the first scaffolding round!"
+				exit 0
+			fi
+
+		# check if there are any more edits to be done
+			test=`wc -l < edits.for.step.$((ROUND+1)).txt`
+			[ $test -eq 1 ] && echo >&1 ":) No more input edits to be done. Moving to polishing!" && rm edits.for.step.$((ROUND+1)).txt && break
+
+		# move on to the next step
+			ROUND=$((ROUND+1))
+			[ -f ${genomeid}".edits.txt" ] && cp ${genomeid}".edits.txt" "archive."${genomeid}".edits.at.step."$((ROUND-1))".txt" # not necessary
 		
-		awk -v bin_size=${editor_fine_resolution} -f ${pipeline}/edit/overlay-edits.awk ${genomeid}.${ROUND}_asm.scaffold_track.txt suspect.at.step.${ROUND}.bed | awk -v r=${resolved} 'NR==1||$3<=r' > suspect_2D.at.step.${ROUND}.txt
+		# reconstruct current edits
+			awk 'BEGIN{OFS="\t"; print "chr1", "x1", "x2", "chr2", "y1", "y2", "color", "id", "X1", "X2", "Y1", "Y2"}$1~/:::debris/{print $1, 0, $3, $1, 0, $3, "0,0,0", "debris", 0, $3, 0, $3}' ${current_cprops} | awk -f ${pipeline}/lift/lift-input-annotations-to-asm-annotations.awk ${current_cprops} <(awk '{print $2}' ${current_cprops}) - | awk -f ${pipeline}/lift/lift-asm-annotations-to-input-annotations.awk ${orig_cprops} <(awk '{print $2}' ${orig_cprops}) - > h.old.edits.txt
 
-	# separate intra and inter-input scaffold mismatches
-		awk 'NR==1||$8=="debris"' suspect_2D.at.step.${ROUND}.txt > edits.for.step.$((ROUND+1)).txt
-	# optional
-		awk 'NR==1||$8=="mismatch"' suspect_2D.at.step.${ROUND}.txt > mismatches.at.step.$ROUND.txt
+		# add new edits
+			bash ${pipeline}/lift/lift-edit-asm-annotations-to-original-input-annotations.sh ${orig_cprops} ${current_cprops} ${genomeid}.$((ROUND-1)).asm edits.for.step.${ROUND}.txt > h.new.edits.txt
+			awk 'NR==1' "h.new.edits.txt" > temp		
+			{ awk 'NR>1' h.old.edits.txt ; awk 'NR>1' "h.new.edits.txt" ; } | sort -k 1,1 -k 2,2n >> temp
+			mv temp ${genomeid}".edits.txt"
+			rm h.old.edits.txt h.new.edits.txt
 		
-		test=`wc -l < edits.for.step.$((ROUND+1)).txt`
-	
-		[ $test -eq 1 ] && echo >&1 ":) No more input edits to be done. Moving to polishing!" && rm edits.for.step.$((ROUND+1)).txt && break
-
-	# move on to the next step	
-		ROUND=$((ROUND+1))
-		[ -f ${genomeid}".edits.txt" ] && cp ${genomeid}".edits.txt" "archive."${genomeid}".edits.at.step."$((ROUND-1))".txt" # not necessary
-	
-	# reconstruct current edits
-		awk 'BEGIN{OFS="\t"; print "chr1", "x1", "x2", "chr2", "y1", "y2", "color", "id", "X1", "X2", "Y1", "Y2"}$1~/:::debris/{print $1, 0, $3, $1, 0, $3, "0,0,0", "debris", 0, $3, 0, $3}' ${current_cprops} | awk -f ${pipeline}/lift/lift-input-annotations-to-asm-annotations.awk ${current_cprops} <(awk '{print $2}' ${current_cprops}) - | awk -f ${pipeline}/lift/lift-asm-annotations-to-input-annotations.awk ${orig_cprops} <(awk '{print $2}' ${orig_cprops}) - > h.old.edits.txt
-
-	# add new edits
-		bash ${pipeline}/lift/lift-edit-asm-annotations-to-original-input-annotations.sh ${orig_cprops} ${current_cprops} ${genomeid}.$((ROUND-1)).asm edits.for.step.${ROUND}.txt > h.new.edits.txt
-		awk 'NR==1' "h.new.edits.txt" > temp		
-		{ awk 'NR>1' h.old.edits.txt ; awk 'NR>1' "h.new.edits.txt" ; } | sort -k 1,1 -k 2,2n >> temp
-		mv temp ${genomeid}".edits.txt"
-		rm h.old.edits.txt h.new.edits.txt
-	
-	# apply edits		
-		bash ${pipeline}/edit/apply-edits-prep-for-next-round.sh -p ${parallel} -r ${ROUND} ${genomeid}".edits.txt" ${orig_cprops} ${orig_mnd}
-		current_cprops=${genomeid}.${ROUND}.cprops
-		current_mnd=${genomeid}.mnd.${ROUND}.txt
+		# apply edits		
+			bash ${pipeline}/edit/apply-edits-prep-for-next-round.sh -p ${parallel} -r ${ROUND} ${genomeid}".edits.txt" ${orig_cprops} ${orig_mnd}
+			current_cprops=${genomeid}.${ROUND}.cprops
+			current_mnd=${genomeid}.mnd.${ROUND}.txt
 	}
 	done
 
@@ -809,7 +791,7 @@ if [ "$stage" != "seal" ] && [ "$stage" != "merge" ] && [ "$stage" != "finalize"
 	echo "###############" >&1
 	echo "Starting split:" >&1
 	bash ${pipeline}/split/run-asm-splitter.sh -p ${parallel} -q ${mapq} -j ${genomeid}.polished.hic -a ${genomeid}.polished_asm.scaffold_track.txt -b ${genomeid}.polished_asm.superscaf_track.txt -s ${splitter_input_size} -c ${splitter_saturation_centile} -w ${splitter_coarse_resolution} -d ${splitter_coarse_region} -k ${splitter_coarse_stringency} -n ${splitter_fine_resolution} ${genomeid}.cprops ${orig_mnd} ${genomeid}.polished.cprops ${genomeid}.polished.asm
-		
+
 	mv ${genomeid}.polished.split.cprops ${genomeid}.split.cprops
 	mv ${genomeid}.polished.split.asm ${genomeid}.split.asm
 	mv ${genomeid}.polished.split.hic ${genomeid}.split.hic
@@ -822,6 +804,12 @@ fi
 
 if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 
+	if [ ! -z ${review_assembly} ]; then
+		ln -sf ${review_assembly} ${genomeid}.split.assembly
+		awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.split.assembly
+		unset review_assembly
+	fi
+
 	[ ! -s ${genomeid}.split.cprops ] || [ ! -s ${genomeid}.split.asm ] && echo >&2 ":( No split files are found. Please rerun the pipeline to include the split segment. Exiting!" && exit 1
 	
 	echo "###############" >&1
@@ -832,61 +820,10 @@ if [ "$stage" != "merge" ] && [ "$stage" != "finalize" ]; then
 	
 	bash ${pipeline}/seal/run-assembly-sealer.sh -i ${input_size} ${genomeid}.split.assembly
 	
+	# prep for finalizing
+	
 	mv ${genomeid}.split.sealed.assembly ${genomeid}.rawchrom.assembly
-	awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
-
-	# sort output by scaffold size if requested (except for unattempted which we keep in the end)
-	if [ "$sort_output" == "true" ]; then
-		awk -v input_size=${input_size} -f ${pipeline}/utils/sort-asm-by-size.awk ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm > ${genomeid}.rawchrom.asm.tmp && mv ${genomeid}.rawchrom.asm.tmp ${genomeid}.rawchrom.asm
-	fi
-
-	bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh ${genomeid}.rawchrom.cprops ${orig_mnd} > ${genomeid}.rawchrom.mnd.txt
-
-	bash ${pipeline}/visualize/run-asm-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm ${genomeid}.rawchrom.mnd.txt
 	
-	rm ${genomeid}.rawchrom.mnd.txt
-
-	# prep for merging and finalizing
-	awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.rawchrom.cprops ${orig_fasta} > ${genomeid}.rawchrom.fasta
-	
-	if [ $diploid == "false" ]; then
-		ln -sf ${genomeid}.rawchrom.cprops ${genomeid}.final.cprops
-		ln -sf ${genomeid}.rawchrom.asm ${genomeid}.final.asm
-		ln -sf ${genomeid}.rawchrom.fasta ${genomeid}.final.fasta
-		ln -sf ${genomeid}.rawchrom.hic ${genomeid}.final.hic
-		ln -sf ${genomeid}.rawchrom.assembly ${genomeid}.final.assembly
-	fi
-	
-fi
-
-############### MERGING ###############
-
-if [ "$stage" != "finalize" ] && [ $diploid == "true" ]; then
-	
-	[ ! -s ${genomeid}.rawchrom.assembly ] || [ ! -s ${genomeid}.rawchrom.fasta ] && echo >&2 ":( No raw chromosomal files were found. Please rerun he pipeline to include the seal segment" && exit 1
-	
-	echo "###############" >&1
-	echo "Starting merge:" >&1
-	
-	[[ -f ${genomeid}.rawchrom.cprops || -f ${genomeid}.rawchrom.asm ]] || awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
-	
-## TODO: split unsafe, redo via indexing as in haploid case
-	if [ -d faSplit ]; then
-		echo >&2 ":| WARNING: Using existing faSplit folder for merge. Totally fine if you know what you are doing. If unsure delete the faSplit folder and restart pipeline."
-	else
-		echo "...preparing fasta..." >&1
-		mkdir faSplit && cd faSplit && awk -f ${pipeline}/merge/split-fasta-by-cname.awk ../${genomeid}.rawchrom.cprops ../${genomeid}.rawchrom.fasta && cd ..
-	fi
-
-	bash ${pipeline}/merge/run-asm-merger.sh -b ${merger_search_band} -s ${merger_alignment_score} -i ${merger_alignment_identity} -l ${merger_alignment_length} -o "${merger_lastz_options}" ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm faSplit
-
-	cp ${genomeid}.rawchrom/${genomeid}.rawchrom_merged.asm ${genomeid}.final.asm
-	ln -sf ${genomeid}.rawchrom/merged_${genomeid}.rawchrom.fa ${genomeid}.final.fasta
-	awk -f ${pipeline}/utils/generate-cprops-file.awk ${genomeid}.final.fasta > ${genomeid}.final.cprops
-	cat <(awk '{$0=">"$0}1' ${genomeid}.final.cprops) ${genomeid}.final.asm > ${genomeid}.final.assembly
-	
-	# cleanup
-	rm -r faSplit
 fi
 
 ############### FINALIZING ###############
@@ -894,8 +831,32 @@ fi
 # finalize fasta
 
 echo "###############" >&1
-echo "Finilizing output:" >&1
-bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
+echo "Finalizing output:" >&1
+
+if [ ! -z ${review_assembly} ] ; then
+	cmp -s ${genomeid}.rawchrom.assembly $review_assembly || (rm -f ${genomeid}.rawchrom.assembly && ln -sf ${review_assembly} ${genomeid}.rawchrom.assembly)
+fi
+
+# sort assembly
+awk -v n=${sort_chromosomes} -f $pipeline/utils/sort-assembly-by-size.awk ${genomeid}.rawchrom.assembly > ${genomeid}.rawchrom.assembly.tmp && mv ${genomeid}.rawchrom.assembly.tmp ${genomeid}.rawchrom.assembly
+awk -f ${pipeline}/utils/convert-assembly-to-cprops-and-asm.awk ${genomeid}.rawchrom.assembly
+
+# build final map if different from rawchrom
+bash ${pipeline}/edit/edit-mnd-according-to-new-cprops.sh -q ${genomeid}.rawchrom.cprops ${orig_mnd} > ${genomeid}.rawchrom.mnd.txt
+bash ${pipeline}/visualize/run-assembly-visualizer.sh -p ${parallel} -q ${mapq} -i -c ${genomeid}.rawchrom.assembly ${genomeid}.rawchrom.mnd.txt
+rm ${genomeid}.rawchrom.mnd.txt
+
+# build final fasta
+# rely on first check to silence the usual annoying warnings 
+awk -f ${pipeline}/utils/wrap-fasta-sequence.awk ${orig_fasta} | awk -v label1=":::fragment_" -v label2=":::debris" -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.rawchrom.cprops - > ${genomeid}.rawchrom.fasta
+
+options="-s ${input_size} -l ${genomeid} -g ${gap_size}"
+[ ! -z ${chromosome_count} ] && options=$options" -c ${chromosome_count}"
+[[ ! -z ${organism} ]] && options=$(printf "%s -o %q" "$options" "$organism")
+[[ ! -z ${isolate} ]] && options=$(printf "%s -i %q" "$options" "$isolate")
+
+eval "bash ${pipeline}/finalize/finalize-output.sh ${options} ${genomeid}.rawchrom.cprops ${genomeid}.rawchrom.asm ${genomeid}.rawchrom.fasta final"
+rm ${genomeid}.rawchrom.fasta ${genomeid}*.cprops ${genomeid}*.asm
 
 # if requested build _HiC.hic
 if [ ! -z ${chromosome_count} ]; then
