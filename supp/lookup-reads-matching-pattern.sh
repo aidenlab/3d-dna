@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#### Description: Script to look mapping positions of Hi-C reads matching a sequence pattern.
+#### Description: Script to look for mapping positions of Hi-C reads that match a sequence pattern.
 #### Usage: bash ./lookup-reads-matching-pattern.sh <sequence_pattern> <path_to_mnd_file>.
 #### Input: string representing a pattern of interest and merged_nodups file. For the mnd file long format is necessary.
 #### Output: stdout in wig format.
