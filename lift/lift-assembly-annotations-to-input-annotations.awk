@@ -105,6 +105,7 @@ FNR==1{print; next}
 				tryagainx=1
 			}else{
 				print ":| Warning: Annotations span split contigs. Ignoring!" > "/dev/stderr"
+				print $0 > "/dev/stderr"
 				next
 			}
 		}
