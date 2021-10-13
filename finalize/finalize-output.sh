@@ -15,20 +15,21 @@ label="HiC"
 
 USAGE="
 ***********************************************
-./finalize-output.sh -c <number_of_chromosomes> -s <tiny_threshold> -g <gap_size> -l <label> <cprops> <asm> <fasta> <type>
+./finalize-output.sh -c <number_of_chromosomes> -s <tiny_threshold> -g <gap_size> -l <label> -o <organism> -i <isolate> <cprops> <asm> <fasta> <type>
 ***********************************************
 "
 
 ## HANDLE OPTIONS
 
-while getopts "c:s:l:g:h" opt; do
+while getopts "c:s:l:g:o:i:h" opt; do
 case $opt in
 	h) echo "$USAGE"
 		exit 0
 	;;
 	c) re='^[0-9]+$'
 		if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]]; then
-	          chrom_num=$OPTARG
+			echo "... -c flag was triggered, will add [location=chromosome] and [chromosome=<chrom_number>] to output sequence names." >&1
+	        chrom_num="$OPTARG"
         else
 	          echo ":( Wrong syntax for chromosome number. Exiting!" >&2 && exit 1
   	  	fi
@@ -36,22 +37,31 @@ case $opt in
 	s) 	re='^[0-9]+$'
         if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]]; then
 	          echo "... -s flag was triggered, treating all contigs/scaffolds shorter than $OPTARG as unattempted." >&1
-	          input_size=$OPTARG
+	          input_size="$OPTARG"
         else
 	          echo ":( Wrong syntax for minimal input contig/scaffold size. Exiting!" >&2 && exit 1
   	  	fi
-    	;;
-    	g) 	re='^[0-9]+$'
-        	if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]]; then
-	          echo "... -g flag was triggered, making gap size between scaffolded draft sequences to be equal to $OPTARG." >&1
-	          gap_size=$OPTARG
-        	else
-	          echo ":( Wrong syntax for default gap size parameter value. Using default gap_size=${gap_size}!" >&2
-  	  	fi
-    	;;
-    	l) label=$OPTARG
-    		echo "... -l flag was triggered. Output will appear with headers of the form ${OPTARG}_hic_scaffold_#."
-    	;;
+	;;
+	g) 	re='^[0-9]+$'
+		if [[ $OPTARG =~ $re ]] && [[ $OPTARG -gt 0 ]]; then
+			echo "... -g flag was triggered, making gap size between scaffolded draft sequences to be equal to $OPTARG." >&1
+			gap_size="$OPTARG"
+		else
+			echo ":( Wrong syntax for default gap size parameter value. Using default gap_size=${gap_size}!" >&2
+	fi
+	;;
+	o)
+		echo "... -o flag was triggered, will add [organism="$OPTARG"] to output sequence names." >&1
+		organism="$OPTARG"
+	;;
+	i)
+		echo "... -i flag was triggered, will add [isolate="$OPTARG"] to output sequence names." >&1
+		isolate="$OPTARG"
+	;;
+	l) 
+		echo "... -l flag was triggered. Output sequence will will appear as ${OPTARG}_HiC.fasta."
+		label="$OPTARG"
+	;;
 	*) echo "$USAGE" >&2
 		exit 1
 	;;
@@ -105,7 +115,7 @@ case $type in
 	;;
 	"final")
 	
-		echo "Analyzing the merged assembly"
+		echo "Analyzing the assembly"
 
 		# trim N overhangs
 		echo "...trimming N overhangs"
@@ -134,7 +144,7 @@ case $type in
 		echo ">hic_gap_${gap_id}" >> temp.fasta
 		awk -v gap_size=${gap_size} 'BEGIN{for(i=1; i<=gap_size;i++){str=str"N"}; print str}' >> temp.fasta
 
-		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - > ${label}_HiC.fasta
+		bash ${pipeline}/finalize/construct-fasta-from-asm.sh temp.cprops temp.asm temp.fasta | awk -f ${pipeline}/utils/wrap-fasta-sequence.awk - | awk -v organism="${organism}" -v isolate="${isolate}" -v chrom_num=${chrom_num} '$0!~/>/{print; next}organism{$1=$1" [organism="organism"]"}isolate{$1=$1" [isolate="isolate"]"}{counter++}(counter<=chrom_num){$1=$1" [location=chromosome] [chromosome="counter"]"}1' > ${label}_HiC.fasta
 		
 		# clean up: remove no_overhangs files
 		
