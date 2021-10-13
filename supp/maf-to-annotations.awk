@@ -29,17 +29,17 @@ $0~/^a score=/{
 	if (orientation[include]=="+")
 		start_coordinate[include]=$3
 	else
-		start_coordinate[include]=$6-$3
+		start_coordinate[include]=$6-$3-$4
 	
 	end_coordinate[include]=start_coordinate[include]+$4
 	
 	if (include==2) {
 		
 		# target
-		print contig[1], start_coordinate[1]-1, end_coordinate[1]-1, contig[1], start_coordinate[1]-1, end_coordinate[1]-1, "0,0,0", "+"contig[1]":"(start_coordinate[1]-1)"-"(end_coordinate[1]-1)":"score, start_coordinate[1]-1, end_coordinate[1]-1, start_coordinate[1]-1, end_coordinate[1]-1 > ""target_file_name""
+		print contig[1], start_coordinate[1], end_coordinate[1], contig[1], start_coordinate[1], end_coordinate[1], "0,0,0", "+"contig[1]":"(start_coordinate[1])"-"(end_coordinate[1])":"score, start_coordinate[1], end_coordinate[1], start_coordinate[1], end_coordinate[1] > ""target_file_name""
 		
 		# query
-		print contig[2], start_coordinate[2]-1, end_coordinate[2]-1, contig[2], start_coordinate[2]-1, end_coordinate[2]-1, "0,0,0", orientation[2]""contig[1]":"(start_coordinate[1]-1)"-"(end_coordinate[1]-1)":"score, start_coordinate[2]-1, end_coordinate[2]-1, start_coordinate[2]-1, end_coordinate[2]-1 > ""query_file_name""
+		print contig[2], start_coordinate[2], end_coordinate[2], contig[2], start_coordinate[2], end_coordinate[2], "0,0,0", orientation[2]""contig[1]":"(start_coordinate[1])"-"(end_coordinate[1])":"score, start_coordinate[2], end_coordinate[2], start_coordinate[2], end_coordinate[2] > ""query_file_name""
 
 		}
 		
