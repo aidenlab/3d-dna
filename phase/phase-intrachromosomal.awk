@@ -177,21 +177,40 @@ END{
 	while(length(conf)>0)
 	{	
 	
-# 		if(verbose && !(megacyclecounter%verbose))
-# 		{
-# 			### print intermediate results	
-# 			for(i=1;i<=length(properties); i++)
-# 				print properties[i] > "h."megacyclecounter".psf"
-# 			### sort by block number and within blocks, by default...
+		if(verbose && !(megacyclecounter%verbose))
+		{
+			### print intermediate results	
+			for(i=1;i<=length(properties); i++)
+				print properties[i] > "verbose."ARGV[1]"."megacyclecounter".psf"
+			### sort by block number and within blocks, by default...
+			for(i=1;i<=length(properties); i++)
+			{
+				if(block[i])
+				{
+					blockcounter++
+					if (ignore_sort) # i don't know why i am keeping this
+						print block[i] > "verbose."ARGV[1]"."megacyclecounter".psf"
+					else
+					{	
+						print block[i] > "verbose."ARGV[1]".tempfile"
+						command="cat verbose."ARGV[1]".tempfile | tr \" \" \"\\n\" | awk '$1>0{print $1, $1;next}{print -$1, $1}' | sort -k 1,1n | awk '{print $2}' | paste -s -d \" \" >> verbose."ARGV[1]"."megacyclecounter".psf"
+						system(command)
+						close(command)
+						close("verbose."ARGV[1]".tempfile")
+					}
+				}
+			}
+
 # 			for(i in block)
 # 			{
 # 				print block[i] > "h."megacyclecounter".psf"
 # 			}
-# 		}
+		print "	...iterative cycle #"megacyclecounter". Block count in this iteration: "blockcounter"." > "/dev/stdout"
+		}
 		
 		megacyclecounter++
-		if (verbose && !(megacyclecounter%verbose))
-			print "	...iterative cycle #"megacyclecounter". Block count in this iteration: "length(block)"." > "/dev/stdout"
+		# if (verbose && !(megacyclecounter%verbose))
+		# 	print "	...iterative cycle #"megacyclecounter". Block count in this iteration: "blockcounter"." > "/dev/stdout"
 
 	
 # 0) clean temporary arrays
@@ -397,5 +416,7 @@ END{
 		}
 	}
 	system("rm -f "ARGV[1]".tempfile "ARGV[1]".tempsortedfile")
+	if (verbose)
+		system("rm -f verbose."ARGV[1]".tempfile verbose."ARGV[1]".tempsortedfile verbose."ARGV[1]".*.psf")
 	print "... :) Done with main program cycle! Block count coming out: "blockcounter"." > "/dev/stdout"
 }
