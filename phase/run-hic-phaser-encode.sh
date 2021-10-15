@@ -206,7 +206,7 @@ type java >/dev/null 2>&1 || { echo >&2 ":( Java is not available, please instal
 
 ##	GNU Parallel Dependency
 type parallel >/dev/null 2>&1 || { echo >&2 ":( GNU Parallel support is set to true (default) but GNU Parallel is not in the path. Please install GNU Parallel or set -p option to false. Exiting!"; exit 1; }
-[ $(parallel --version | awk 'NR==1{print \$3}') -ge 20150322 ] && { echo >&2 ":( Outdated version of GNU Parallel is installed. Please install/add to path v 20150322 or later. Exiting!"; exit 1; }
+[ $(parallel --version | awk 'NR==1{print $3}') -ge 20150322 ] || { echo >&2 ":( Outdated version of GNU Parallel is installed. Please install/add to path v 20150322 or later. Exiting!"; exit 1; }
 
 ## Samtools Dependency
 type samtools >/dev/null 2>&1 || { echo >&2 ":( Samtools are not available, please install/add to path. Exiting!"; exit 1; }
@@ -232,7 +232,7 @@ bam=$2
 
 ## 0. PREP BAM FILE
 
-if [ "$first_stage" == "parse_vcf" ]; then
+if [ "$first_stage" == "prep_bam" ]; then
 
 	echo "...Extracting unique paired alignments from bam and sorting..." >&1
 
@@ -244,6 +244,9 @@ if [ "$first_stage" == "parse_vcf" ]; then
 	# e.g. will fail with chr longer than ~500Mb. Use samtools index -c -m 14 reads.sorted.bam
 
 	echo ":) Done extracting unique paired alignments from bam and sorting." >&1
+
+	[ "$last_stage" == "prep_bam" ] && { echo "Done with the requested workflow. Exiting after prepping bam!"; exit; }
+	first_stage="parse_vcf"
 
 else
 
@@ -323,7 +326,7 @@ if [ "$first_stage" == "parse_bam" ]; then
 else
 	edge_mnd="snp.mnd.txt"
 
-	if [ ! -f ${edge_mnd}} ] || [ ! -f "dangling.sam" ]; then
+	if [ ! -f ${edge_mnd} ] || [ ! -f "dangling.sam" ]; then
 		echo ":( Files from previous stages of the pipeline appear to be missing. Exiting!" | tee -a /dev/stderr
 		exit 1
 	fi
@@ -367,6 +370,7 @@ if [ "$first_stage" == "phase" ]; then
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log doit
 		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
 		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at phasing. See err stream for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
+		rm temp.log
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite -k "awk '\$0~/^>/' out.{}.psf" > out.psf
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite -k "awk '\$0!~/^>/' out.{}.psf" >> out.psf
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite rm out.{}.psf
@@ -403,7 +407,7 @@ if [ "$first_stage" == "update_vcf" ]; then
 
 	echo "...Updating vcf file with phasing info..." >&1
 
-	awk -f ${pipeline}/phase/update-vcf-using-psf.awk out.psf ${vcf} > `basename ${vcf} .vcf`"_HiC.vcf"
+	awk -f ${pipeline}/phase/update-vcf-according-to-psf.awk out.psf ${vcf} > `basename ${vcf} .vcf`"_HiC.vcf"
 
 	echo ":) Done updating vcf file with phasing info." >&1
 
