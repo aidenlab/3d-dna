@@ -34,7 +34,10 @@ FILENAME==ARGV[1]{
 	FS="\t"
 }
 # print metainfo lines
+$0~/^##FORMAT=<ID=/{has_format_metainfo=1}
+$0~/^##FORMAT=<ID=PS,/{has_ps_metainfo=1}
 $0~/^##/{print; next}
+has_format_metainfo&&(!has_ps_metainfo){print "##FORMAT=<ID=PS,Number=1,Type=Integer,Description=\"Phasing ID information, where each unique ID connects records within a phasing group\">"; has_ps_metainfo=1}
 $0~/^#/{
     print "##source=3D-DNA";
     print;
