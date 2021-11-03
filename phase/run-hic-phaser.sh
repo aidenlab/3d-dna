@@ -75,6 +75,7 @@ mapq=1
 stringency=3
 background=1
 verbose=""
+build_maps_in_native_coordinates=false
 
 ############### HANDLE OPTIONS ###############
 
@@ -85,6 +86,7 @@ while :; do
 			exit 0
         ;;
         -c|--chr) OPTARG=$2
+			echo "... -c|--chr flag was triggered, ignoring all sequences in the vcf except for $OPTARG." >&1
 			chr=$OPTARG
         	shift
         ;;
@@ -134,6 +136,9 @@ while :; do
 			verbose=$OPTARG
 			shift
 		;;
+		# --build-maps-in-native-coordinates)
+		# 	build_maps_in_native_coordinates=true;
+		# ;;
 ### utilitarian
         --) # End of all options
 			shift
@@ -173,26 +178,50 @@ mnd=$2
 
 ############### MAIN #################
 
-#1) parse original vcf file [ potentially unnecessary safeguard against unsorted vcf ]
+#1) parse original vcf file [ assumes the vcf file is sorted ]
 echo ":) Parsing vcf file..." >&1
-[ -z ${psf} ] && ( cat ${vcf} | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' | awk -v chr=${chr} -v output_prefix="in" -f ${pipeline}/phase/vcf-to-psf-and-assembly.awk && mv "in.assembly" `basename ${vcf} .vcf`".in.assembly" ) && psf="in.psf"
+[ -z ${psf} ] && ( awk -v chr=${chr} -v output_prefix="in" -f ${pipeline}/phase/vcf-to-psf-and-assembly.awk ${vcf} && mv "in.assembly" `basename ${vcf} .vcf`".in.assembly" ) && psf="in.psf"
+if grep -q ':' ${psf}; then
+	echo >&2 ":( Some of the reference sequences appear to have a \":\" character in their names. This is going to interfere with the hic phaser internal annotation schema. Please rename the sequences in the vcf and the mnd files to proceed."
+	echo ":( Something went wrong. Check stderr for more info. Exiting!" && exit 1
+fi
+
 echo ":) Done parsing vcf file." >&1
 
 #2) extract SNP overlapping edges from mnd file
 echo ":) Extracting Hi-C contacts overlapping SNPs...">&1
-[ -z ${edge_mnd} ] && { bash ${pipeline}/phase/extract-SNP-edges-from-mnd-file.sh -q ${mapq} -o "snp.mnd.txt" ${psf} ${mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../' && edge_mnd="snp.mnd.txt"
+#[ -z ${edge_mnd} ] && { bash ${pipeline}/phase/extract-SNP-edges-from-mnd-file.sh -q ${mapq} -o "snp.mnd.txt" ${psf} ${mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../' && edge_mnd="snp.mnd.txt"
+if [ -z ${edge_mnd} ]; then
+	{ bash ${pipeline}/phase/extract-SNP-reads-from-mnd-file.sh -q ${mapq} -d -n -o "dangling.native.mnd.txt" ${psf} ${mnd} | sed 's/^/.../'; } 2> >(while read line; do echo "...$line" >&2; done)
+	[ ${PIPESTATUS[0]} -ne 0 ] && echo ":( Something went wrong. Check stderr for more info. Exiting!" && exit 1
+#	awk '($2~/:/)&&($6~/:/)&&($2!=$6){$3=1;$7=1;print}' "dangling.native.mnd.txt" > "snp.mnd.txt"; 
+
+		awk -v mapq=$mapq '($2~/:/)&&($6~/:/)&&($2!=$6)&&$9>=mapq&&$12>=mapq{$3=1;$7=1;print}' "dangling.native.mnd.txt" > "snp.mnd.txt"; 
+
+	edge_mnd="snp.mnd.txt"
+fi
+
 echo ":) Done extracting Hi-C contacts overlapping SNPs.">&1
 
 #3) visualize input
 echo ":) Visualizing input phased blocks..."
-[ -f `basename ${vcf} .vcf`".in.assembly" ] && { bash ${pipeline}/visualize/run-assembly-visualizer.sh -c -p ${parallel} `basename ${vcf} .vcf`".in.assembly" ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
+# if [ -f `basename ${vcf} .vcf`".in.assembly" ]; then
+# 	{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c -p ${parallel} `basename ${vcf} .vcf`".in.assembly" ${edge_mnd} | sed 's/^/.../'; } 2> >(while read line; do echo "...$line" >&2; done)
+# 	[ ${PIPESTATUS[0]} -ne 0 ] && echo ":( Something went wrong. Check stderr for more info. Exiting!" && exit 1
+# fi
+
 echo ":) Done visualizing input phased blocks."
 
 #4) phase
 echo ":) Phasing..."
-if [ ! -z "$chr" ]; then
-	{ awk -v stringency=${stringency} -v background=${background} -v outfile="out.psf" -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk ${psf} ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
+if [ ! -z "$chr" ] && [[ $chr != *"|"* ]]; then
+	{ awk -v stringency=${stringency} -v background=${background} -v outfile="out.psf" -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk ${psf} ${edge_mnd} | sed 's/^/.../';  } 2> >(while read line; do echo "...$line" >&2; done)
+	[ ${PIPESTATUS[0]} -ne 0 ] && echo ":( Something went wrong. Check stderr for more info. Exiting!" && exit 1
 else
+	if [ -z "$chr" ]; then
+		chr=$(awk '$0~/^>/{if($1!=prev){str=str"|"substr($1,2); prev=$1;}}END{print substr(str,2)}' ${psf})
+	fi
+	
 	export SHELL=$(type -p bash)
 	export psf=${psf}
 	export edge_mnd=${edge_mnd}
@@ -201,16 +230,16 @@ else
 	export verbose=${verbose}
 	export pipeline=${pipeline}
 	doit () { 
-		cmd="awk -v chr=$1 '\$1==\">\"chr{print; id[\$NF]=1; id[-\$NF]=1}\$1~/^>/{next}(\$1 in id){print}' ${psf} > h.$1.psf && awk -v stringency=${stringency} -v background=${background} -v outfile=out.$1.psf -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk h.$1.psf ${edge_mnd} && rm h.$1.psf"
+		cmd="echo \"Phasing chr $1.\" && awk -v chr=$1 '\$1==\">\"chr{print; id[\$NF]=1; id[-\$NF]=1}\$1~/^>/{next}(\$1 in id){print}' ${psf} > h.$1.psf && awk -v stringency=${stringency} -v background=${background} -v outfile=out.$1.psf -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk h.$1.psf ${edge_mnd} && rm h.$1.psf"
 		eval $cmd
 	}
 	export -f doit
-	
+
 	if [ $parallel == "true" ]; then
-		awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u | parallel --will-cite doit
-		awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u | parallel --will-cite -k "awk '\$0~/^>/' out.{}.psf" > out.psf
-		awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u | parallel --will-cite -k "awk '\$0!~/^>/' out.{}.psf" >> out.psf
-		awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u | parallel --will-cite rm out.{}.psf
+		echo $chr | tr "|" "\n" | parallel --will-cite doit
+		echo $chr | tr "|" "\n" | parallel --will-cite -k "awk '\$0~/^>/' out.{}.psf" > out.psf
+		echo $chr | tr "|" "\n" | parallel --will-cite -k "awk '\$0!~/^>/' out.{}.psf" >> out.psf
+		echo $chr | tr "|" "\n" | parallel --will-cite rm out.{}.psf
 	else
 		rm -f "out.psf.p1" "out.psf.p2"
 		while read -r var; do
@@ -218,20 +247,35 @@ else
 			awk '$0~/^>/' "out."${var}".psf" >> out.psf.p1
 			awk '$0!~/^>/' "out."${var}".psf" >> out.psf.p2
 			rm out.${var}.psf
-		done < <(awk '$0~/^>/{print substr($1,2)}' ${psf} | sort -u)
+		done < <(echo $chr | tr "|" "\n")
 		cat "out.psf.p1" "out.psf.p2" > "out.psf"
 		rm "out.psf.p1" "out.psf.p2"
 	fi
 fi
+
+#TODO: exit code tracking?
 echo ":) Done phasing."
 
 #5) visualize results and dump vcf
 echo ":) Visualizing output phased blocks..."
 awk -f ${pipeline}/phase/psf-to-assembly.awk "out.psf" > `basename ${vcf} .vcf`".out.assembly" 
-{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c -p ${parallel} `basename ${vcf} .vcf`".out.assembly" ${edge_mnd} 2>&3 | sed 's/^/.../';  } 3>&1 1>&2 | sed 's/^/.../'
-awk -f ${pipeline}/phase/psf-to-vcf.awk "out.psf" > `basename ${vcf} .vcf`".out.vcf"
+
+if [ -f `basename ${vcf} .vcf`".out.assembly" ]; then
+	{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c -p ${parallel} `basename ${vcf} .vcf`".out.assembly" ${edge_mnd} | sed 's/^/.../'; } 2> >(while read line; do echo "...$line" >&2; done)
+	[ ${PIPESTATUS[0]} -ne 0 ] && echo ":( Something went wrong. Check stderr for more info. Exiting!" && exit 1
+fi
 echo ":) Done visualizing output phased blocks."
 
-#6) cleanup
+#6) if requested build contact maps for the largest component in 'native' coordinates. Optionally keep dangling ends.
+
+bash ${pipeline}/phase/replace-variants-with-homologs-in-var-mnd.sh -k out.psf dangling.native.mnd.txt
+awk -f ${pipeline}/phase/vcf-to-native-assembly.awk ${vcf} > native.assembly
+bash ${pipeline}/lift/lift-input-mnd-to-HiC-mnd.sh native.assembly homolog.mnd.txt
+
+
+#7) update the vcf file
+awk -f ${pipeline}/phase/psf-to-vcf.awk "out.psf" > `basename ${vcf} .vcf`".out.vcf"
+
+#8) cleanup
 #rm ${psf} ${edge_mnd} "out.psf"
 
