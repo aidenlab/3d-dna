@@ -1,5 +1,5 @@
 ## Helper script to convert existing vcfs to psf and assembly files.
-## USAGE: awk [ -v sample_name="NA12878" -v output_prefix="NA12878" -v chr=chrname(s) -v ignore_filter=0 -v verbose=0 -v ignore_psf=0 ] -f vcf-to-assembly.awk <path_to_vcf_file> 
+## USAGE: awk [ -v sample_name="NA12878" -v output_prefix="NA12878" -v chr=chrname(s) -v exclude_chr=list_of_chr_to_exclude -v ignore_filter=0 -v verbose=0 -v ignore_psf=0 ] -f vcf-to-assembly.awk <path_to_vcf_file> 
 ## INPUT: vcf file
 ## PARAMETERS: chr: can be a chromosome or a list of chromosomes, e.g. 1, chr1, 1|2, chr1|chr3|chr5 etc. TODO: more testing.
 ## Written by O.D. (olga.dudchenko@bcm.edu)
@@ -16,6 +16,7 @@ BEGIN{
 # 	if(!length(output_prefix)){output_prefix="in"}
 # 	if(length(chr)){output_prefix=output_prefix"."chr}
 	if(length(chr)){chr="^("chr")$"}
+	if(length(exclude_chr)){exclude_chr="^("exclude_chr")$"}
 }
 
 # skip metainfo lines
@@ -34,6 +35,9 @@ $0~/^#/{
 # if chr argument is passed ignore rows with different CHROM
 
 (length(chr) && $1!~chr){next}
+
+# if exclude_chr argument is passed ignore rows matching excluded CHROM
+(length(exclude_chr) && $1~exclude_chr){next}
 
 # check that there is expected number of columns
 NF<sample_field{if(verbose){print ":| Unexpected number of fields, not sure how to parse VCF file. Ignoring VCF entry:" > "/dev/stderr"; print $0 > "/dev/stderr"}; next}
