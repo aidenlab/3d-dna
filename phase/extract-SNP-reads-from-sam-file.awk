@@ -149,7 +149,7 @@ FILENAME==ARGV[1]{
 		}
 		else
 		{
-			## the whole length matck is not relevant for SNP comparison. Should I keep for the same of other vars or give up?
+			## the whole length match is not relevant for SNP comparison. Should I keep for the same of other vars or give up?
 			if (position[snp[chr_field" "tmp]]<=leftmatch+cigar[k]-1)
 			{
 				if(substr(sequence_field, s + (position[snp[chr_field" "tmp]] - leftmatch), length(var1[snp[chr_field" "tmp]]))==var1[snp[chr_field" "tmp]])
@@ -186,66 +186,5 @@ FILENAME==ARGV[1]{
 	n=int(1+rand()*n)
 	$3=a[n]
 	print $0
-	
-	# if(keep_dangling_edges)
-	# {
-	# 	if(n==0 && ($2 in counter) && $9>=mapq)
-	# 	{
-	# 		n=1; a[1]=$2
-	# 	}
-	# 	if(m==0 && ($6 in counter) &&$12>=mapq)
-	# 	{
-	# 		m=1; b[1]=$6
-	# 	}
-	# }
-	
-	# if(report_combinatorial_edges)
-	# {
-	# 	delete reported 	## keep track of prev reported to track SNPs read from both sides..
 
-	# 	for(i=1;i<n;i++)
-	# 	{
-	# 		for(j=i+1;j<=n;j++)
-	# 		{
-	# 			$2=a[i]; $6=a[j];
-	# 			if(!keep_native_coordinates){$3=1; $7=1;};
-	# 			print; if(amplify_neighboring_snps){print};
-	# 			reported[a[i]" "a[j]]=1
-	# 		}
-	# 	}
-		
-	# 	for(i=1;i<m;i++)
-	# 	{
-	# 		for(j=i+1;j<=m;j++)
-	# 		{
-	# 			if (reported[b[i]" "b[j]]){continue}
-	# 			$2=b[i]; $6=b[j];
-	# 			if(!keep_native_coordinates){$3=1; $7=1;};
-	# 			print; if(amplify_neighboring_snps){print};
-	# 			reported[b[i]" "b[j]]=1
-	# 		}
-	# 	}
-				
-	# 	for(i=1;i<=n;i++)
-	# 	{
-	# 		for(j=1;j<=m;j++)
-	# 		{
-	# 			if (a[i]==b[j] || reported[a[i]" "b[j]] || reported[b[j]" "a[i]]){continue}
-	# 			$2=a[i]; $6=b[j]; 
-	# 			if(!keep_native_coordinates){$3=1; $7=1;};
-	# 			print;
-	# 		}
-	# 	}
-	# }
-	# else
-	# {
-	# 	if(n==0||m==0){next}
-
-	# 	# just take one random overlapping SNP per one read half
-	# 	n=int(1+rand()*n)
-	# 	m=int(1+rand()*m)
-	# 	$2=a[n]; $6=b[m];
-	# 	if(!keep_native_coordinates){$3=1; $7=1;};
-	# 	print
-	# }
 }
