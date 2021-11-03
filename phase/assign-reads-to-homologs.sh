@@ -48,7 +48,7 @@ case $opt in
 		exit 0
 	;;
     c)  chr=$OPTARG
-        echo "... -c flag was triggered, ignoring all sequences in the psf except for $OPTARG." >&2
+        echo "... -c flag was triggered, ignoring all sequences in the psf except for $OPTARG." >&1
     ;;
 	t)  OPTARG=$2
         re='^[0-9]+$'
@@ -60,7 +60,7 @@ case $opt in
 				exit 1
 		fi
     ;;
-	*)  echo ":( Illegal options. Exiting!"
+	*)  echo ":( Illegal options. Exiting!" >&2
 		echo "$USAGE" >&1
 		exit 1
 	;;
