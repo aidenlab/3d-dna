@@ -36,7 +36,10 @@ OPTIONS:
 
 DATA FILTERING:						
 -c|--chr [chr_list]
-		                Phase only specific molecules (default phases all molecules listed in the vcf file).
+		                Phase only specific molecules (default phases all molecules that have variants listed in the vcf file). Note that -c and -C are incompatible in that if both are invoked, only the last listed option will be taken into account.
+
+-C|--exclude-chr [chr_list]
+						Remove specific molecules from the chromosome list (default: chrY). Note that -c and -C are incompatible in that if both are invoked, only the last listed option will be taken into account.
 
 -q|--mapq [mapq]
 		                Consider only Hi-C reads that align with minimal mapping quality of mapq (default is 1).
@@ -51,15 +54,19 @@ PHASER CONTROL:
 -v|--verbose [step_for_intermediate_data_dump]
 						Print intermediate phasing results every [step_for_intermediate_data_dump] steps.
 
+OUTPUT CONTROL:
+--separate-homolog-maps
+						Build two separate contact maps for homologs as opposed to a single diploid contact map with interleaved homologous chromosomes. This is the preferred mode for comparing contacts across homologs using the \"Observed over Control\" view for map comparison in Juicebox. Importantly, assignment of chromosomes to homologs is arbitrary. Default: not invoked. 
+
 WORKFLOW CONTROL:
 -t|--threads [num]
         				Indicate how many threads to use. Default: half of available cores as calculated by parallel --number-of-cores.
 
 --from-stage [pipeline_stage]
-						Fast-forward to a particular stage of the pipeline. The pipeline_stage argument can be \"prep\", \"sort\", \"recalibrate_bases\", \"genotype\", \"recalibrate_variants\", \"cleanup\". 
+						Fast-forward to a particular stage of the pipeline. The pipeline_stage argument can be \"prep\", \"parse_vcf\", \"parse_bam\", \"visualize_input\", \"phase\", \"visualize_output\", \"update_vcf\", \"map_diploid\", \"cleanup\".
 
 --to-stage [pipeline_stage]
-						Exit after a particular stage of the pipeline. The argument can be \"prep\", \"sort\", \"recalibrate_bases\", \"genotype\", \"recalibrate_variants\", \"cleanup\".
+						Exit after a particular stage of the pipeline. The argument can be \"prep\", \"parse_vcf\", \"parse_bam\", \"visualize_input\", \"phase\", \"visualize_output\", \"update_vcf\", \"map_diploid\", \"cleanup\".
 
 *****************************************************
 "
@@ -69,10 +76,12 @@ pipeline=`cd "$( dirname $0)" && cd .. && pwd`
 
 # defaults:
 chr=""
+exclude_chr="chrY"
 mapq=1
 stringency=3
 background=1
 verbose=""
+separate_homolog_maps=false
 
 #multithreading
 threads=`parallel --number-of-cores`
@@ -83,10 +92,10 @@ tmp=$((tmp+0))
 ([ $tmp -gt 0 ] && [ $tmp -lt $threads ]) && threads=$tmp
 
 #staging
-first_stage="prep_bam"
-last_stage="map_diploid"
+first_stage="prep"
+last_stage="cleanup"
 declare -A stage
-stage[prep_bam]=0
+stage[prep]=0
 stage[parse_vcf]=1
 stage[parse_bam]=2
 stage[visualize_input]=3
@@ -94,7 +103,7 @@ stage[phase]=4
 stage[visualize_output]=5
 stage[update_vcf]=6
 stage[map_diploid]=7
-#stage[cleanup]=8
+stage[cleanup]=8
 
 ############### HANDLE OPTIONS ###############
 
@@ -108,6 +117,13 @@ while :; do
         -c|--chr) OPTARG=$2
 			echo "... -c|--chr flag was triggered, ignoring all sequences in the vcf except for $OPTARG." >&1
 			chr=$OPTARG
+			exclude_chr=""
+        	shift
+        ;;
+		-C|--exclude-chr) OPTARG=$2
+			echo "... -C|--exclude-chr flag was triggered, will ignore variants on $OPTARG." >&1
+			exclude_chr=$OPTARG
+			chr=""
         	shift
         ;;
         -q|--mapq) OPTARG=$2
@@ -148,6 +164,11 @@ while :; do
 			verbose=$OPTARG
 			shift
 		;;
+### output
+		--separate-homolog-maps)
+			echo "... --separate-homolog-maps flag was triggered, will build two separate contact maps (-r.hic and -a.hic) for chromosomal homologs with identical chromosomal labels." >&1
+			separate_homolog_maps=true
+		;;
 ### workflow	
         -t|--threads) OPTARG=$2
         	re='^[0-9]+$'
@@ -161,7 +182,7 @@ while :; do
         	shift
         ;;	
 		--from-stage) OPTARG=$2
-			if [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ]; then
+			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "cleanup" ]; then
         		echo " --from-stage flag was triggered. Will fast-forward to $OPTARG." >&1
         		first_stage=$OPTARG
 			else
@@ -171,7 +192,7 @@ while :; do
 			shift
         ;;
 		--to-stage) OPTARG=$2
-			if [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ]; then
+			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "cleanup" ]; then
 				echo " --to-stage flag was triggered. Will exit after $OPTARG." >&1
 				last_stage=$OPTARG
 			else
@@ -226,26 +247,28 @@ fi
 vcf=$1
 bam=$2
 
-##TODO: check that reference names do not contain the \":\" character
+## Check that reference names do not contain the \":\" character. TODO: use some more obsure separator
+test=`awk -F , '$0!~/^#/{exit}($1~/##contig=<ID=/){n+=gsub(":",":",$1)}END{print n+=0}' $vcf`
+[ $test -eq 0 ] || { echo ":( Sequence names contain semicolumns. This will interfere with the internal notation of the phasing pipeline. Please rename your sequences to proceed. Exiting!" | tee -a /dev/stderr && exit 1; }
 
 ############### MAIN #################
 
 ## 0. PREP BAM FILE
 
-if [ "$first_stage" == "prep_bam" ]; then
+if [ "$first_stage" == "prep" ]; then
 
 	echo "...Extracting unique paired alignments from bam and sorting..." >&1
 
 	samtools view -u -d "rt:0" -d "rt:1" -d "rt:2" -d "rt:3" -d "rt:4" -d "rt:5" -@ $((threads * 2)) -F 0x400 -q $mapq $bam |  samtools sort -@ $threads -m 6G -o reads.sorted.bam
-	[ $? -eq 0 ] || { echo ":( Failed at bam sorting. See err stream for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+	[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at bam sorting. See stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
 
 	samtools index -@ $threads reads.sorted.bam	
-	[ $? -eq 0 ] || { echo ":( Failed at bam indexing. See err stream for more info. Exiting!" | tee -a /dev/stderr && exit 1; }		
+	[ $? -eq 0 ] || { echo ":( Failed at bam indexing. See stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }		
 	# e.g. will fail with chr longer than ~500Mb. Use samtools index -c -m 14 reads.sorted.bam
 
 	echo ":) Done extracting unique paired alignments from bam and sorting." >&1
 
-	[ "$last_stage" == "prep_bam" ] && { echo "Done with the requested workflow. Exiting after prepping bam!"; exit; }
+	[ "$last_stage" == "prep" ] && { echo "Done with the requested workflow. Exiting after prepping bam!"; exit; }
 	first_stage="parse_vcf"
 
 else
@@ -254,13 +277,13 @@ else
 
 fi
 
-## I. PARSE VCF FILE [ASSUMES THE VCF FILE IS SORTED]
+## I. PARSE VCF FILE [ASSUMES THE VCF FILE IS PROPERLY SORTED]
 
 if [ "$first_stage" == "parse_vcf" ]; then
 
 	echo "...Parsing vcf file..." >&1
 	
-	awk -v chr=${chr} -v output_prefix="in" -f ${pipeline}/phase/vcf-to-psf-and-assembly.awk ${vcf}
+	awk -v chr=${chr} -v exclude_chr=${exclude_chr} -v output_prefix="in" -f ${pipeline}/phase/vcf-to-psf-and-assembly.awk ${vcf}
 	mv "in.assembly" `basename ${vcf} .vcf`".in.assembly"
 
 	assembly=`basename ${vcf} .vcf`".in.assembly"
@@ -268,6 +291,11 @@ if [ "$first_stage" == "parse_vcf" ]; then
 
 	if [ -z "$chr" ]; then
 		chr=$(awk '$0~/^>/{if($1!=prev){str=str"|"substr($1,2); prev=$1;}}END{print substr(str,2)}' ${psf})
+	fi
+
+	if [ ! -s $psf ] || [ ! -s `basename ${vcf} .vcf`".in.assembly" ]; then
+		echo ":( Pipeline failed at parsing vcf. Check stderr for more info. Exiting!" |  tee -a /dev/stderr
+		exit 1
 	fi
 
 	echo ":) Done parsing vcf file." >&1
@@ -279,7 +307,7 @@ else
 
 	psf="in.psf"
 
-	if [ ! -f $psf ] || [ ! -f `basename ${vcf} .vcf`".in.assembly" ]; then
+	if [ ! -s $psf ] || [ ! -s `basename ${vcf} .vcf`".in.assembly" ]; then
 		echo ":( Files from previous stages of the pipeline appear to be missing. Exiting!" | tee -a /dev/stderr
 		exit 1
 	fi
@@ -295,11 +323,11 @@ if [ "$first_stage" == "parse_bam" ]; then
 	
 	echo "...Parsing bam file..." >&1
 
-	if [ ! -z "$chr" ] && [[ $chr != *"|"* ]]; then
+	if [[ $chr != *"|"* ]]; then
 		samtools view -@ $threads reads.sorted.bam $chr | awk -f ${pipeline}/phase/extract-SNP-reads-from-sam-file.awk ${psf} - > dangling.sam
 
-		[ ${PIPESTATUS[0]} -ne 0 ] && { echo ":( Something went wrong. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
-		## TODO: parallelize single-chrom workflow based on interval_list
+		[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at parsing bam. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+		## maybe TODO: parallelize single-chrom workflow based on interval_list
 	
 	else
 		export SHELL=$(type -p bash)
@@ -311,12 +339,17 @@ if [ "$first_stage" == "parse_bam" ]; then
 		export -f doit
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log doit > dangling.sam
 		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
-		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at parsing bam. See err stream for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
+		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at parsing bam. Check stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 		rm temp.log
 	fi
 
 	awk '{c[$1]++}END{for (i in c){if(c[i]==2){print i}}}' dangling.sam | awk 'FILENAME==ARGV[1]{remember[$1]=1;next}($1 in remember){str[$1]=str[$1]" "$3}END{for(i in str){split(substr(str[i],2),a," "); print 0,a[1],1,0,0,a[2],1,1,1,"-","-",1,"-","-"}}' - dangling.sam > snp.mnd.txt
 	edge_mnd="snp.mnd.txt"
+
+	if [ ! -s ${edge_mnd} ] || [ ! -s "dangling.sam" ]; then
+		echo "Pipeline failed at parsing bam. Check stderr for more info. Exiting! " | tee -a /dev/stderr
+		exit 1
+	fi
 
 	echo ":) Done parsing bam file." >&1
 
@@ -326,7 +359,7 @@ if [ "$first_stage" == "parse_bam" ]; then
 else
 	edge_mnd="snp.mnd.txt"
 
-	if [ ! -f ${edge_mnd} ] || [ ! -f "dangling.sam" ]; then
+	if [ ! -s ${edge_mnd} ] || [ ! -s "dangling.sam" ]; then
 		echo ":( Files from previous stages of the pipeline appear to be missing. Exiting!" | tee -a /dev/stderr
 		exit 1
 	fi
@@ -338,7 +371,7 @@ if [ "$first_stage" == "visualize_input" ]; then
 	echo "...Visualizing input phased blocks..." >&1
 
 	{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c `basename ${vcf} .vcf`".in.assembly" ${edge_mnd} | sed 's/^/.../'; } 2> >(while read line; do echo "...$line" >&2; done)
- 	[ ${PIPESTATUS[0]} -ne 0 ] && { echo ":( Something went wrong. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+ 	[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Something went wrong. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
 
 	echo ":) Done visualizing input phased blocks." >&1
 	
@@ -351,9 +384,9 @@ fi
 if [ "$first_stage" == "phase" ]; then
 
 	echo "...Phasing..."
-	if [ ! -z "$chr" ] && [[ $chr != *"|"* ]]; then
+	if [[ $chr != *"|"* ]]; then
 		{ awk -v stringency=${stringency} -v background=${background} -v outfile="out.psf" -v verbose=${verbose} -f ${pipeline}/phase/phase-intrachromosomal.awk ${psf} ${edge_mnd} | sed 's/^/.../';  } 2> >(while read line; do echo "...$line" >&2; done)
-		[ ${PIPESTATUS[0]} -ne 0 ] && { echo ":( Something went wrong. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+		[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at phasing. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
 	else
 		export SHELL=$(type -p bash)
 		export psf=${psf}
@@ -369,21 +402,23 @@ if [ "$first_stage" == "phase" ]; then
 		export -f doit
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log doit
 		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
-		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at phasing. See err stream for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
+		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at phasing. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 		rm temp.log
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite -k "awk '\$0~/^>/' out.{}.psf" > out.psf
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite -k "awk '\$0!~/^>/' out.{}.psf" >> out.psf
 		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite rm out.{}.psf
 	fi
 
-	#TODO: exit code tracking?
-	echo ":) Done phasing."
+	echo ":) Done phasing. See summary stats below:"
+	echo "	------------"
+	awk -f ${pipeline}/phase/print-phasing-stats-from-psf.awk out.psf
+	echo "	------------"
 
 	[ "$last_stage" == "phase" ] && { echo "Done with the requested workflow. Exiting after phasing!"; exit; }
 	first_stage="visualize_output"
 
 else
-	[ -f out.psf ] || { echo ":( Files from previous stages of the pipeline appear to be missing. Exiting!" | tee -a /dev/stderr; exit 1; }
+	[ -s out.psf ] || { echo ":( Files from previous stages of the pipeline appear to be missing. Exiting!" | tee -a /dev/stderr; exit 1; }
 fi
 
 ## V. VISUALIZE OUTPUT PHASED BLOCKS.
@@ -394,7 +429,8 @@ if [ "$first_stage" == "visualize_output" ]; then
 	awk -f ${pipeline}/phase/psf-to-assembly.awk "out.psf" > `basename ${vcf} .vcf`".out.assembly" 
 
 	{ bash ${pipeline}/visualize/run-assembly-visualizer.sh -c `basename ${vcf} .vcf`".out.assembly" ${edge_mnd} | sed 's/^/.../'; } 2> >(while read line; do echo "...$line" >&2; done)
- 	[ ${PIPESTATUS[0]} -ne 0 ] && { echo ":( Something went wrong. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+
+ 	[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at visualizing output. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
 
 	echo ":) Done visualizing output phased blocks." >&1
 	
@@ -408,6 +444,7 @@ if [ "$first_stage" == "update_vcf" ]; then
 	echo "...Updating vcf file with phasing info..." >&1
 
 	awk -f ${pipeline}/phase/update-vcf-according-to-psf.awk out.psf ${vcf} > `basename ${vcf} .vcf`"_HiC.vcf"
+	[ $? -eq 0 ] || { echo ":( Failed at updating vcf. See stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }		
 
 	echo ":) Done updating vcf file with phasing info." >&1
 
@@ -421,13 +458,58 @@ fi
 if [ "$first_stage" == "map_diploid" ]; then
 
 	echo "...Building diploid contact maps from reads overlapping phased SNPs..." >&1
-
-	#-f ${juiceDir}/scripts/sam_to_pre.awk
 	
-	#bash ${pipeline}/phase/replace-variants-with-homologs-in-var-mnd.sh -k out.psf dangling.native.mnd.txt
+	## maybe TODO: add SNP-delimited diploid maps
+	
+	bash ${pipeline}/phase/assign-reads-to-homologs.sh -t ${threads} -c ${chr} out.psf dangling.sam
+
+	if [[ $chr != *"|"* ]]; then
+		### single chromosome case
+
+		samtools view -@ ${threads} -h reads.sorted.bam $chr | awk -v chr=$chr 'FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){keep[$1]=1};next}$0~/^@/||($1 in keep)' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk -v chr=$chr 'FILENAME==ARGV[1]{if($2!=chr"-r"&&$2!=chr"-a"){next};if(($1 in homolog)&&homolog[$1]!=$2){delete homolog[$1];next};homolog[$1]=$2; next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}($1 in homolog){str=str"\t"n"\t"homolog[$1]"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' reads_to_homologs.txt - | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
+
+		#samtools view -@ ${threads} -u reads.sorted.bam $chr | samtools sort -@ ${threads} -n -m 6G -O sam | awk -v chr=$chr 'FILENAME==ARGV[1]{if($2!=chr"-r"&&$2!=chr"-a"){next};if(($1 in homolog)&&homolog[$1]!=$2){delete homolog[$1];next};homolog[$1]=$2; next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}($1 in homolog){str=str"\t"n"\t"homolog[$1]"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' reads_to_homologs.txt - | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
+
+		[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+		## potentially TODO: parallelize single-chrom workflow based on interval_list
+	else
+		export SHELL=$(type -p bash)
+		export psf=${psf}
+		export pipeline=${pipeline}
+		doit () { 
+			samtools view -@ 2 -h reads.sorted.bam $1 | awk -v chr=$1 'FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){keep[$1]=1};next}$0~/^@/||($1 in keep)' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk -v chr=$1 'FILENAME==ARGV[1]{if($2!=chr"-r"&&$2!=chr"-a"){next};if(($1 in homolog)&&homolog[$1]!=$2){delete homolog[$1];next};homolog[$1]=$2; next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}($1 in homolog){str=str"\t"n"\t"homolog[$1]"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' reads_to_homologs.txt - | sort -k 2,2 -S 6G
+		}
+		export -f doit
+		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit > diploid.mnd.txt
+		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
+		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
+		rm temp.log
+	fi
+
+	if [ "$separate_homolog_maps" == "true" ]; then
+		{ awk '$2~/-r$/{gsub("-r","",$2); gsub("-r","",$6); print}' diploid.mnd.txt > tmp1.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp1.mnd.txt haploid-r.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } &
+		{ awk '$2~/-a$/{gsub("-a","",$2); gsub("-a","",$6); print}' diploid.mnd.txt > tmp2.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp2.mnd.txt haploid-a.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } &
+		wait
+		rm tmp1.mnd.txt tmp2.mnd.txt
+		## TODO: check if successful
+	else
+		bash ${pipeline}/visualize/juicebox_tools.sh pre diploid.mnd.txt diploid.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"-r\t"len; print substr($1,14)"-a\t"len}' $vcf)
+		## TODO: check if successful
+	fi
 
 	echo ":) Done building diploid contact maps from reads overlapping phased SNPs." >&1
 
+	[ "$last_stage" == "map_diploid" ] && { echo "Done with the requested workflow. Exiting after building diploid hic maps!"; exit; }
+	first_stage="cleanup"
+
 fi
 
+## VIII. CLEANUP
+	echo "...Starting cleanup..." >&1
+	#rm reads.sorted.bam reads.sorted.bam.bai
+	#rm dangling.sam
+	#rm snp.mnd.txt reads_to_homologs.txt diploid.mnd.txt
+	#rm *_track.txt
+	echo ":) Done with cleanup. This is the last stage of the pipeline. Exiting!"
+	exit
 }
