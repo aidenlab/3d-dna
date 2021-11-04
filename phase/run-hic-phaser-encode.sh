@@ -173,7 +173,7 @@ while :; do
         -t|--threads) OPTARG=$2
         	re='^[0-9]+$'
 			if [[ $OPTARG =~ $re ]]; then
-					echo " -t|--threads flag was triggered, will try to parallelize across $OPTARG threads." >&1
+					echo "... -t|--threads flag was triggered, will try to parallelize across $OPTARG threads." >&1
 					threads=$OPTARG
 			else
 					echo " :( Wrong syntax for thread count parameter value. Exiting!" >&2
@@ -183,7 +183,7 @@ while :; do
         ;;	
 		--from-stage) OPTARG=$2
 			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "cleanup" ]; then
-        		echo " --from-stage flag was triggered. Will fast-forward to $OPTARG." >&1
+        		echo "... --from-stage flag was triggered. Will fast-forward to $OPTARG." >&1
         		first_stage=$OPTARG
 			else
 				echo " :( Whong syntax for pipeline stage. Please use parse_vcf/parse_bam/visualize_input/phase/visualize_output/update_vcf/map_diploid. Exiting!" >&2
@@ -193,7 +193,7 @@ while :; do
         ;;
 		--to-stage) OPTARG=$2
 			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "cleanup" ]; then
-				echo " --to-stage flag was triggered. Will exit after $OPTARG." >&1
+				echo "... --to-stage flag was triggered. Will exit after $OPTARG." >&1
 				last_stage=$OPTARG
 			else
 				echo " :( Whong syntax for pipeline stage. Please use parse_vcf/parse_bam/visualize_input/phase/visualize_output/update_vcf/map_diploid. Exiting!" >&2
@@ -487,9 +487,9 @@ if [ "$first_stage" == "map_diploid" ]; then
 	fi
 
 	if [ "$separate_homolog_maps" == "true" ]; then
-		{ awk '$2~/-r$/{gsub("-r","",$2); gsub("-r","",$6); print}' diploid.mnd.txt > tmp1.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp1.mnd.txt haploid-r.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } &
-		{ awk '$2~/-a$/{gsub("-a","",$2); gsub("-a","",$6); print}' diploid.mnd.txt > tmp2.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp2.mnd.txt haploid-a.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } &
-		wait
+		{ awk '$2~/-r$/{gsub("-r","",$2); gsub("-r","",$6); print}' diploid.mnd.txt > tmp1.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp1.mnd.txt haploid-r.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } #&
+		{ awk '$2~/-a$/{gsub("-a","",$2); gsub("-a","",$6); print}' diploid.mnd.txt > tmp2.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp2.mnd.txt haploid-a.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } #&
+		#wait
 		rm tmp1.mnd.txt tmp2.mnd.txt
 		## TODO: check if successful
 	else
