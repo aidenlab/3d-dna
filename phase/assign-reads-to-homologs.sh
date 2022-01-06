@@ -115,7 +115,7 @@ replacement[chr_of_origin[-var[j]]":"pos[-var[j]]":"var2[-var[j]]]=chr_of_origin
 }
 }
 # read in the sam
-($3 in replacement){for(i=12;i<=NF;i++){if($i~/^rt:i:/){rt=substr($i,6);break;}};print $1"\t"replacement[$3]"\t"rt}
+($3 in replacement){for(i=12;i<=NF;i++){if($i~/^rt:A:/){rt=substr($i,6);break;}};print $1"\t"replacement[$3]"\t"rt}
 EOD
 ) $1 $2
 }
