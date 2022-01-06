@@ -103,7 +103,8 @@ stage[phase]=4
 stage[visualize_output]=5
 stage[update_vcf]=6
 stage[map_diploid]=7
-stage[cleanup]=8
+stage[build_accessibility]=8
+stage[cleanup]=9
 
 ############### HANDLE OPTIONS ###############
 
@@ -182,21 +183,21 @@ while :; do
         	shift
         ;;	
 		--from-stage) OPTARG=$2
-			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "cleanup" ]; then
+			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "build_accessibility" ] || [ "$OPTARG" == "cleanup" ]; then
         		echo "... --from-stage flag was triggered. Will fast-forward to $OPTARG." >&1
         		first_stage=$OPTARG
 			else
-				echo " :( Whong syntax for pipeline stage. Please use parse_vcf/parse_bam/visualize_input/phase/visualize_output/update_vcf/map_diploid. Exiting!" >&2
+				echo " :( Whong syntax for pipeline stage. Please use parse_vcf/parse_bam/visualize_input/phase/visualize_output/update_vcf/map_diploid/build_accessibility. Exiting!" >&2
 				exit 1
 			fi
 			shift
         ;;
 		--to-stage) OPTARG=$2
-			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "cleanup" ]; then
+			if [ "$OPTARG" == "prep" ] || [ "$OPTARG" == "parse_vcf" ] || [ "$OPTARG" == "parse_bam" ] || [ "$OPTARG" == "visualize_input" ] || [ "$OPTARG" == "phase" ] || [ "$OPTARG" == "visualize_output" ] || [ "$OPTARG" == "update_vcf" ] || [ "$OPTARG" == "map_diploid" ] || [ "$OPTARG" == "build_accessibility" ] || [ "$OPTARG" == "cleanup" ]; then
 				echo "... --to-stage flag was triggered. Will exit after $OPTARG." >&1
 				last_stage=$OPTARG
 			else
-				echo " :( Whong syntax for pipeline stage. Please use parse_vcf/parse_bam/visualize_input/phase/visualize_output/update_vcf/map_diploid. Exiting!" >&2
+				echo " :( Whong syntax for pipeline stage. Please use parse_vcf/parse_bam/visualize_input/phase/visualize_output/update_vcf/map_diploid/build_accessibility. Exiting!" >&2
 				exit 1			
 			fi
 			shift
