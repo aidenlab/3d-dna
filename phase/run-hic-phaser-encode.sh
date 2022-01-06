@@ -463,39 +463,47 @@ if [ "$first_stage" == "map_diploid" ]; then
 	
 	bash ${pipeline}/phase/assign-reads-to-homologs.sh -t ${threads} -c ${chr} out.psf dangling.sam
 
-	if [[ $chr != *"|"* ]]; then
-		### single chromosome case
+	samtools view -H reads.sorted.bam | grep '^@RG' | awk -F '\t' '{for(i=2;i<=NF;i++){if($i~/^ID:/){id=substr($i,4)};if($i~/^SM:/){sm=substr($i,4)}}; sub("[^a-zA-Z0-9\\.\\-]","_",sm); print id > "rg_"sm".txt"}'
 
-		samtools view -@ ${threads} -h reads.sorted.bam $chr | awk -v chr=$chr 'FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){keep[$1]=1};next}$0~/^@/||($1 in keep)' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk -v chr=$chr 'FILENAME==ARGV[1]{if($2!=chr"-r"&&$2!=chr"-a"){next};if(($1 in homolog)&&homolog[$1]!=$2){delete homolog[$1];next};homolog[$1]=$2; next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}($1 in homolog){str=str"\t"n"\t"homolog[$1]"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' reads_to_homologs.txt - | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
+while read sm
+do	
+		if [[ $chr != *"|"* ]]; then
+			### single chromosome case
 
-		#samtools view -@ ${threads} -u reads.sorted.bam $chr | samtools sort -@ ${threads} -n -m 6G -O sam | awk -v chr=$chr 'FILENAME==ARGV[1]{if($2!=chr"-r"&&$2!=chr"-a"){next};if(($1 in homolog)&&homolog[$1]!=$2){delete homolog[$1];next};homolog[$1]=$2; next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}($1 in homolog){str=str"\t"n"\t"homolog[$1]"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' reads_to_homologs.txt - | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
+			samtools view -@ ${threads} -R "rg_"$sm".txt" -h reads.sorted.bam $chr | awk -v chr=$chr 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk '$0~/^@/{next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}{for(i=12;i<=NF;i++){if($i~/^ip:i:/){$4=substr($i,6);break;}};str=str"\t"n"\t"$3"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
 
-		[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
-		## potentially TODO: parallelize single-chrom workflow based on interval_list
-	else
-		export SHELL=$(type -p bash)
-		export psf=${psf}
-		export pipeline=${pipeline}
-		doit () { 
-			samtools view -@ 2 -h reads.sorted.bam $1 | awk -v chr=$1 'FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){keep[$1]=1};next}$0~/^@/||($1 in keep)' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk -v chr=$1 'FILENAME==ARGV[1]{if($2!=chr"-r"&&$2!=chr"-a"){next};if(($1 in homolog)&&homolog[$1]!=$2){delete homolog[$1];next};homolog[$1]=$2; next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}($1 in homolog){str=str"\t"n"\t"homolog[$1]"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' reads_to_homologs.txt - | sort -k 2,2 -S 6G
-		}
-		export -f doit
-		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit > diploid.mnd.txt
-		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
-		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
-		rm temp.log
-	fi
+			[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+			## potentially TODO: parallelize single-chrom workflow based on interval_list
+		else
+			export SHELL=$(type -p bash)
+			export psf=${psf}
+			export pipeline=${pipeline}
+			export sm=$sm
+			doit () { 
+				samtools view -@ 2  -R "rg_"$sm".txt" -h reads.sorted.bam $1 | awk -v chr=$1 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk '$0~/^@/{next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}{for(i=12;i<=NF;i++){if($i~/^ip:i:/){$4=substr($i,6);break;}};str=str"\t"n"\t"$3"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' | sort -k 2,2 -S 6G
 
-	if [ "$separate_homolog_maps" == "true" ]; then
-		{ awk '$2~/-r$/{gsub("-r","",$2); gsub("-r","",$6); print}' diploid.mnd.txt > tmp1.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp1.mnd.txt haploid-r.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } #&
-		{ awk '$2~/-a$/{gsub("-a","",$2); gsub("-a","",$6); print}' diploid.mnd.txt > tmp2.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp2.mnd.txt haploid-a.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } #&
-		#wait
-		rm tmp1.mnd.txt tmp2.mnd.txt
-		## TODO: check if successful
-	else
-		bash ${pipeline}/visualize/juicebox_tools.sh pre diploid.mnd.txt diploid.hic <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"-r\t"len; print substr($1,14)"-a\t"len}' $vcf)
-		## TODO: check if successful
-	fi
+			}
+			export -f doit
+			echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit > diploid.mnd.txt
+			exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
+			[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
+			rm temp.log
+		fi
+
+		if [ "$separate_homolog_maps" == "true" ]; then
+			{ awk '$2~/-r$/{gsub("-r","",$2); gsub("-r","",$6); print}' diploid.mnd.txt > tmp1.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp1.mnd.txt $sm"-haploid-r.hic" <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } #&
+			{ awk '$2~/-a$/{gsub("-a","",$2); gsub("-a","",$6); print}' diploid.mnd.txt > tmp2.mnd.txt && bash ${pipeline}/visualize/juicebox_tools.sh pre tmp2.mnd.txt $sm"-haploid-a.hic" <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"\t"len}' $vcf); } #&
+			#wait
+			rm tmp1.mnd.txt tmp2.mnd.txt
+			## TODO: check if successful
+		else
+			bash ${pipeline}/visualize/juicebox_tools.sh pre diploid.mnd.txt $sm"-diploid.hic" <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"-r\t"len; print substr($1,14)"-a\t"len}' $vcf)
+			## TODO: check if successful
+		fi
+
+	rm "rg_"$sm".txt" diploid.mnd.txt
+
+	done < <(samtools view -H reads.sorted.bam | grep '^@RG' | sed "s/.*SM:\([^\t]*\).*/\1/g" | awk '{gsub("[^a-zA-Z0-9\\.\\-]", "_")}1' | uniq)
 
 	echo ":) Done building diploid contact maps from reads overlapping phased SNPs." >&1
 
@@ -508,7 +516,7 @@ fi
 	echo "...Starting cleanup..." >&1
 	#rm reads.sorted.bam reads.sorted.bam.bai
 	#rm dangling.sam
-	#rm snp.mnd.txt reads_to_homologs.txt diploid.mnd.txt
+	#rm snp.mnd.txt reads_to_homologs.txt
 	#rm *_track.txt
 	echo ":) Done with cleanup. This is the last stage of the pipeline. Exiting!"
 	exit
