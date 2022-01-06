@@ -235,6 +235,9 @@ type samtools >/dev/null 2>&1 || { echo >&2 ":( Samtools are not available, plea
 ver=`samtools --version | awk 'NR==1{print \$NF}'`
 [[ $(echo "$ver < 1.13" |bc -l) -eq 1 ]] && { echo >&2 ":( Outdated version of samtools is installed. Please install/add to path v 1.13 or later. Exiting!"; exit 1; }
 
+## TODO: kentUtils Dependency
+type bedGraphToBigWig >/dev/null 2>&1 || { echo >&2 ":( bedGraphToBigWig is not available, please install/add to path, e.g. from kentUtils. Exiting!"; exit 1; }
+
 ############### HANDLE ARGUMENTS ###############
 
 [ -z $1 ] || [ -z $2 ] && echo >&2 ":( Not sure how to parse your input: files not listed or not found at expected locations. Exiting!" && echo >&2 "$USAGE" && exit 1
@@ -509,11 +512,60 @@ do
 	echo ":) Done building diploid contact maps from reads overlapping phased SNPs." >&1
 
 	[ "$last_stage" == "map_diploid" ] && { echo "Done with the requested workflow. Exiting after building diploid hic maps!"; exit; }
+	first_stage="build_accessibility"
+
+fi
+
+## VIII. BUILD ACCESSIBILITY TRACKS
+
+if [ "$first_stage" == "build_accessibility" ]; then
+
+	echo "...Building diploid accessibility tracks from reads overlapping phased SNPs..." >&1
+
+	if [ ! -s reads.sorted.bam ] || [ ! -s reads_to_homologs.txt ]; then
+		echo ":( Files from previous stages of the pipeline appear to be missing. Exiting!" | tee -a /dev/stderr
+		exit 1
+	fi
+	
+	samtools view -H reads.sorted.bam | grep '^@RG' | awk -F '\t' '{for(i=2;i<=NF;i++){if($i~/^ID:/){id=substr($i,4)};if($i~/^SM:/){sm=substr($i,4)}}; sub("[^a-zA-Z0-9\\.\\-]","_",sm); print id > "rg_"sm".txt"}'
+
+	while read sm
+	do	
+		if [[ $chr != *"|"* ]]; then
+			### single chromosome case
+
+			samtools view -@ ${threads} -R "rg_"$sm".txt" -d "rt:2" -d "rt:3" -d "rt:4" -d "rt:5" -h reads.sorted.bam $chr | awk -v chr=$chr 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk 'BEGIN{OFS="\t"}$0~/^@/{next}{for (i=12; i<=NF; i++) {if ($i ~ /^ip/) {split($i, ip, ":"); locus[$3" "ip[3]]++; break}}}END{for (i in locus) {split(i, a, " "); print a[1], a[2]-1, a[2], locus[i]}}' | sort -k1,1 -k2,2n --parallel=${threads} -S 6G > tmp.bedgraph
+
+			[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at building diploid accessibility tracks. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
+		else
+			export SHELL=$(type -p bash)
+			export psf=${psf}
+			export pipeline=${pipeline}
+			export sm=$sm
+			doit () { 
+				samtools view -@ 2  -R "rg_"$sm".txt" -h reads.sorted.bam $1 | awk -v chr=$1 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk 'BEGIN{OFS="\t"}$0~/^@/{next}{for (i=12; i<=NF; i++) {if ($i ~ /^ip/) {split($i, ip, ":"); locus[$3" "ip[3]]++; break}}}END{for (i in locus){split(i, a, " "); print a[1], a[2]-1, a[2], locus[i]}}' | sort -k1,1 -k2,2n -S 6G
+			}
+			export -f doit
+			echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit | sort -k1,1 -k2,2n -S 6G > tmp.bedgraph
+			exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
+			[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
+			rm temp.log
+		fi
+
+		bedGraphToBigWig tmp.bedgraph <(awk -v chr=$chr -F, 'BEGIN{split(chr,tmp,"|"); for(i in tmp){chrom[tmp[i]]=1}}$1!~/^#/{exit}($1!~/##contig=<ID=/){next}(substr($1,14) in chrom){split($2,a,"="); len=substr(a[2],1,length(a[2]-1)); print substr($1,14)"-r\t"len; print substr($1,14)"-a\t"len}' $vcf) $sm"-diploid.bw"
+
+		rm "rg_"$sm".txt" tmp.bedgraph
+
+	done < <(samtools view -H reads.sorted.bam | grep '^@RG' | sed "s/.*SM:\([^\t]*\).*/\1/g" | awk '{gsub("[^a-zA-Z0-9\\.\\-]", "_")}1' | uniq)
+
+	echo ":) Done building diploid accessibility tracks from reads overlapping phased SNPs." >&1
+
+	[ "$last_stage" == "build_accessibility" ] && { echo "Done with the requested workflow. Exiting after building diploid accessibility tracks!"; exit; }
 	first_stage="cleanup"
 
 fi
 
-## VIII. CLEANUP
+## IX. CLEANUP
 	echo "...Starting cleanup..." >&1
 	#rm reads.sorted.bam reads.sorted.bam.bai
 	#rm dangling.sam
