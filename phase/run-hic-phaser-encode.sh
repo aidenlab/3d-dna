@@ -474,7 +474,7 @@ do
 		if [[ $chr != *"|"* ]]; then
 			### single chromosome case
 
-			samtools view -@ ${threads} -R "rg_"$sm".txt" -h reads.sorted.bam $chr | awk -v chr=$chr 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk '$0~/^@/{next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}{for(i=12;i<=NF;i++){if($i~/^ip:i:/){$4=substr($i,6);break;}};str=str"\t"n"\t"$3"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
+			samtools view -@ ${threads} -R "rg_"$sm".txt" -h reads.sorted.bam $chr | awk -v chr=$chr 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&($7=="="||$7=="*"){$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk '$0~/^@/{next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}{for(i=12;i<=NF;i++){if($i~/^ip:i:/){$4=substr($i,6);break;}};str=str"\t"n"\t"$3"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' | sort -k 2,2 --parallel=${threads} -S6G > diploid.mnd.txt
 
 			[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
 			## potentially TODO: parallelize single-chrom workflow based on interval_list
@@ -484,7 +484,7 @@ do
 			export pipeline=${pipeline}
 			export sm=$sm
 			doit () { 
-				samtools view -@ 2  -R "rg_"$sm".txt" -h reads.sorted.bam $1 | awk -v chr=$1 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk '$0~/^@/{next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}{for(i=12;i<=NF;i++){if($i~/^ip:i:/){$4=substr($i,6);break;}};str=str"\t"n"\t"$3"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' | sort -k 2,2 -S 6G
+				samtools view -@ 2  -R "rg_"$sm".txt" -h reads.sorted.bam $1 | awk -v chr=$1 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&($7=="="||$7=="*"){$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk '$0~/^@/{next}($1!=prev){if(n==2){sub("\t","",str); print str}; str=""; n=0}{for(i=12;i<=NF;i++){if($i~/^ip:i:/){$4=substr($i,6);break;}};str=str"\t"n"\t"$3"\t"$4"\t"n; n++; prev=$1}END{if(n==2){sub("\t","",str); print str}}' | sort -k 2,2 -S 6G
 
 			}
 			export -f doit
@@ -527,14 +527,19 @@ if [ "$first_stage" == "build_accessibility" ]; then
 		exit 1
 	fi
 	
-	samtools view -H reads.sorted.bam | grep '^@RG' | awk -F '\t' '{for(i=2;i<=NF;i++){if($i~/^ID:/){id=substr($i,4)};if($i~/^SM:/){sm=substr($i,4)}}; sub("[^a-zA-Z0-9\\.\\-]","_",sm); print id > "rg_"sm".txt"}'
+	cmd="samtools view -H reads.sorted.bam | grep '^@RG' | awk -F '\t' '{for(i=2;i<=NF;i++){if(\$i~/^ID:/){id=substr(\$i,4)};if(\$i~/^SM:/){sm=substr(\$i,4)};if(\$i~/^PL:/){print substr(\$i,4)}}; sub(\"[^a-zA-Z0-9\\\.\\\-]\",\"_\",sm); print id > \"rg_\"sm\".txt\"}' | uniq | xargs" && pl=`eval $cmd`
+
+	# check that platforms arent' mixed. TODO: group readgroups by sm and platform
+	([ "$pl" == "ILLUMINA" ] || [ "$pl" == "LS454" ]) || { echo ":( Data from different platforms seems to be mixed. Can't handle this case. Exiting!" | tee -a /dev/stderr && exit 1; }
+
+	[ "$pl" == "ILLUMINA" ] && junction_rt_string="-d rt:2 -d rt:3 -d rt:4 -d rt:5" || junction_rt_string="-d rt:0 -d rt:1"
 
 	while read sm
 	do	
 		if [[ $chr != *"|"* ]]; then
 			### single chromosome case
 
-			samtools view -@ ${threads} -R "rg_"$sm".txt" -d "rt:2" -d "rt:3" -d "rt:4" -d "rt:5" -h reads.sorted.bam $chr | awk -v chr=$chr 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -@ ${threads} -n -m 1G -O sam | awk 'BEGIN{OFS="\t"}$0~/^@/{next}{for (i=12; i<=NF; i++) {if ($i ~ /^ip/) {split($i, ip, ":"); locus[$3" "ip[3]]++; break}}}END{for (i in locus) {split(i, a, " "); print a[1], a[2]-1, a[2], locus[i]}}' | sort -k1,1 -k2,2n --parallel=${threads} -S 6G > tmp.bedgraph
+			samtools view -@ ${threads} -R "rg_"$sm".txt" ${junction_rt_string} -h reads.sorted.bam $chr | awk -v chr=$chr 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@/{next}($1 in keep){$3=keep[$1]; for (i=12; i<=NF; i++) {if ($i~/^ip/) {split($i, ip, ":"); locus[$3" "ip[3]]++; break}}}END{for (i in locus) {split(i, a, " "); print a[1], a[2]-1, a[2], locus[i]}}' reads_to_homologs.txt - | sort -k1,1 -k2,2n --parallel=${threads} -S 6G > tmp.bedgraph
 
 			[ `echo "${PIPESTATUS[@]}" | tr -s ' ' + | bc` -eq 0 ] || { echo ":( Pipeline failed at building diploid accessibility tracks. Check stderr for more info. Exiting!" | tee -a /dev/stderr && exit 1; }
 		else
@@ -542,11 +547,12 @@ if [ "$first_stage" == "build_accessibility" ]; then
 			export psf=${psf}
 			export pipeline=${pipeline}
 			export sm=$sm
+			export junction_rt_string=${junction_rt_string}
 			doit () { 
-				samtools view -@ 2  -R "rg_"$sm".txt" -h reads.sorted.bam $1 | awk -v chr=$1 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@SQ/{$2=$2"-r"; print; $2=substr($2,1,length($2)-2)"-a";print;next}$0~/^@/{print;next}($1 in keep)&&$7=="="{$3=keep[$1];print}' reads_to_homologs.txt - | samtools sort -n -m 1G -O sam | awk 'BEGIN{OFS="\t"}$0~/^@/{next}{for (i=12; i<=NF; i++) {if ($i ~ /^ip/) {split($i, ip, ":"); locus[$3" "ip[3]]++; break}}}END{for (i in locus){split(i, a, " "); print a[1], a[2]-1, a[2], locus[i]}}' | sort -k1,1 -k2,2n -S 6G
+				samtools view -@ 2  -R "rg_"$sm".txt" ${junction_rt_string} -h reads.sorted.bam $1 | awk -v chr=$1 'BEGIN{OFS="\t"}FILENAME==ARGV[1]{if($2==chr"-r"||$2==chr"-a"){if(keep[$1]&&keep[$1]!=$2){delete keep[$1]}else{keep[$1]=$2}};next}$0~/^@/{next}($1 in keep){$3=keep[$1]; for (i=12; i<=NF; i++) {if ($i~/^ip/) {split($i, ip, ":"); locus[$3" "ip[3]]++; break}}}END{for (i in locus) {split(i, a, " "); print a[1], a[2]-1, a[2], locus[i]}}' reads_to_homologs.txt - | sort -k1,1 -k2,2n -S 6G
 			}
 			export -f doit
-			echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit | sort -k1,1 -k2,2n -S 6G > tmp.bedgraph
+			echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit > tmp.bedgraph
 			exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
 			[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 			rm temp.log
