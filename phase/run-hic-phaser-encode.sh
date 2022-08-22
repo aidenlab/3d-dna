@@ -349,7 +349,8 @@ if [ "$first_stage" == "parse_bam" ]; then
 			samtools view -@ 2 reads.sorted.bam $1 | awk -f ${pipeline}/phase/extract-SNP-reads-from-sam-file.awk ${psf} -
 		}
 		export -f doit
-		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log doit > dangling.sam
+		echo $chr | tr "|" "\n" | parallel -j $threads --tmpdir . --will-cite --joblog temp.log doit > dangling.sam
+		cat temp.log >&2;
 		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
 		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at parsing bam. Check stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 		rm temp.log
@@ -412,7 +413,8 @@ if [ "$first_stage" == "phase" ]; then
 			eval $cmd
 		}
 		export -f doit
-		echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log doit
+		echo $chr | tr "|" "\n" | parallel -j $threads --tmpdir . --will-cite --joblog temp.log doit
+		cat temp.log >&2;
 		exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
 		[ $exitval -eq 0 ] || { echo ":( Pipeline failed at phasing. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 		rm temp.log
@@ -496,7 +498,8 @@ do
 
 			}
 			export -f doit
-			echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit > diploid.mnd.txt
+			echo $chr | tr "|" "\n" | parallel -j $threads --tmpdir . --will-cite --joblog temp.log -k doit > diploid.mnd.txt
+			cat temp.log >&2;
 			exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
 			[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 			rm temp.log
@@ -561,6 +564,7 @@ if [ "$first_stage" == "build_accessibility" ]; then
 			}
 			export -f doit
 			echo $chr | tr "|" "\n" | parallel -j $threads --will-cite --joblog temp.log -k doit > tmp.bedgraph
+			cat temp.log>&2;
 			exitval=`awk 'NR>1{if($7!=0){c=1; exit}}END{print c+0}' temp.log`
 			[ $exitval -eq 0 ] || { echo ":( Pipeline failed at building diploid contact maps. See stderr for more info. Exiting! " | tee -a /dev/stderr && exit 1; }
 			rm temp.log
