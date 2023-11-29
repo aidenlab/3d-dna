@@ -1,7 +1,7 @@
 #### Description: Script to wrap randomly formatter fasta files.
 #### USAGE: awk -f wrap-fasta-sequence.awk <path-to-fasta-file>
 #### Output: wrapped fasta-formatted stdout
-#### Notes: Default is 80.
+#### Notes: To change default block size(80), pass in new block size using
 
 BEGIN{
 	if (! block)
