@@ -247,7 +247,9 @@ else
 	rm ${genomeid}.final.mnd.txt
 
 	# build final fasta
-	awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.final.cprops ${orig_fasta} > ${genomeid}.final.fasta
+	#awk -f ${pipeline}/edit/edit-fasta-according-to-new-cprops.awk ${genomeid}.final.cprops ${orig_fasta} > ${genomeid}.final.fasta
+    python3 ${pipeline}/edit/edit-fasta-according-to-new-cprops.py ${genomeid}.final.cprops ${orig_fasta} | seqkit seq -w 80 > ${genomeid}.final.fasta
+ 
 	bash ${pipeline}/finalize/finalize-output.sh -s ${input_size} -l ${genomeid} -g ${gap_size} ${genomeid}.final.cprops ${genomeid}.final.asm ${genomeid}.final.fasta final
 
 	# if requested build HiC map with added gaps

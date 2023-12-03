@@ -35,6 +35,8 @@ This post-processing includes four steps: (i) a polishing algorithm which attemp
 - `GNU coreutils sort >=8.11`
 - `Python >=2.7` -  for chromosome number-aware splitter module only 
 - `scipy numpy matplotlib` - for chromosome number-aware splitter module only
+- `BioPython` - for edit fasta
+- `seqkit` - for wrapping sequence
 
 #### Recommended
 - `GNU Parallel >=20150322` – highly recommended to increase performance
